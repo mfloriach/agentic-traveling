@@ -1,0 +1,24 @@
+from pydantic import BaseModel
+
+
+class DestinationOutput(BaseModel):
+    destination: str
+  
+    
+class FlightPlan(BaseModel):
+    from_city: str
+    to_city: str
+    arrivla_time: str
+    
+
+class HotelOption(BaseModel):
+    name: str
+    localtion: str
+    price_per_night_usd: int
+    starts: int
+
+
+class Activities(BaseModel):
+    personalized_for: str
+    top_activities: list[str]
+    

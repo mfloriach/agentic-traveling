@@ -1,0 +1,39 @@
+[project]
+name = "rag"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Marti Floriach", email = "mfloriach90@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "asyncio>=4.0.0",
+    "faiss-cpu>=1.15.1",
+    "fastapi>=0.161.1",
+    "httpx>=0.28.1",
+    "langchain>=1.4.7",
+    "langchain-community>=0.4.2",
+    "langchain-huggingface>=1.2.3",
+    "langchain-openai>=1.7.2",
+    "langchain-qdrant>=1.1.0",
+    "langchain-text-splitters>=1.1.3",
+    "logfire>=5.4.0",
+    "openai>=3.37.0",
+    "pydantic>=2.14.1",
+    "pydantic-ai>=2.61.0",
+    "pydantic-ai-slim[logfire]>=2.61.0",
+    "pyyaml>=6.0.3",
+    "qdrant-client>=1.20.0",
+    "redis>=8.1.0",
+    "sentence-transformers>=6.2.0",
+    "tika>=3.3.2",
+    "uvicorn[standar]>=0.54.0",
+]
+
+[project.scripts]
+rag = "rag:main"
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.13.0"]
+build-backend = "uv_build"

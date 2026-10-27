@@ -1,0 +1,36 @@
+agents:
+  hotel:
+    name: hotel_agent
+    model: anthropic:claude-haiku-4-5
+    temperature: 0.5
+    max_output_tokens: 1000
+    max_concurrency: 10
+    system_prompt: >
+      Suggest a good hotel near the arrival airport.
+
+  destination:
+    name: destination_agent
+    model: openai:gpt-4o
+    temperature: 0.3
+    max_output_tokens: 500
+    max_concurrency: 5
+    system_prompt: >
+      Help the user select an ideal travel destination.
+
+  flight:
+    name: flight_agent
+    model: anthropic:claude-haiku-4-5
+    temperature: 0.2
+    max_output_tokens: 1000
+    max_concurrency: 10
+    system_prompt: >
+      Plan a realistic itinerary for a trip.
+
+  activities:
+    name: activity_agent
+    model: anthropic:claude-haiku-4-5
+    temperature: 0.2
+    max_output_tokens: 1000
+    max_concurrency: 10
+    system_prompt: >
+      Suggest local activities close to the hotel
