@@ -2,12 +2,12 @@ import asyncio
 from dataclasses import dataclass
 from typing import Optional
 
-from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic_ai import Agent
 
 from ..decorators import log_agent
-from .config import load_agent_configs
+from ..config import load_agent_configs
+from ..agents.agents import destination, flight, hotel, activities
 
 import logfire
 from ..logging import logger
@@ -31,10 +31,10 @@ class TravelPlanner:
         self.ctx = TripContext()
         self.config = load_agent_configs()
         
-        self.destination_agent = Agent(**self.config.destination)
-        self.flight_agent = Agent(**self.config.flight)
-        self.hotel_agent = Agent(**self.config.hotel)
-        self.activity_agent = Agent(**self.config.activities)
+        self.destination_agent = destination
+        self.flight_agent = flight
+        self.hotel_agent = hotel
+        self.activity_agent = activities
        
     async def handle_destination(self, user_input: str) -> None:
         result = await self.destination_agent.run(user_input, deps=self.deps)
