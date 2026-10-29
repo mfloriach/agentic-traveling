@@ -1,13 +1,29 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 
 from dag.errors import ForbiddenError
 from dag.services.travel_planner import Triage, TripState, ValidationResult
+from logger import request_id
 from main import graph
 
 router = APIRouter()
+app = FastAPI()
+app.include_router(router)
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    # trust the client's header if given, else mint one; echo it back
+    rid = request.headers.get("x-request-id") or uuid.uuid4().hex
+    token = request_id.set(rid)
+    try:
+        response = await call_next(request)
+    finally:
+        request_id.reset(token)
+    response.headers["x-request-id"] = rid
+    return response
 
 
 @router.get("/query")
@@ -35,6 +51,3 @@ async def query_rag_system(query: str) -> dict[str, Any]:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
-
-app = FastAPI()
-app.include_router(router)

@@ -1,13 +1,14 @@
 import uuid
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Literal, Optional, Protocol
+from typing import Any, List, Literal, Optional, Protocol
 
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
 from logger import logger
+
 from ..agents.schemas import Activities, DestinationOutput, FlightPlan, HotelOption
 
 
@@ -60,7 +61,7 @@ class TripState(BaseModel):
     arrival_time: Optional[str] = None
     hotel_name: Optional[str] = None
     hotel_location: Optional[str] = None
-    activities: Optional[str] = None
+    activities: Optional[List[str]] = None
 
     validation: ValidationResult
     retry_count: int
@@ -114,7 +115,7 @@ class TravelPlanner:
             f"and suitable for a traveler arriving at {state.arrival_time}."
         )
         # result = await self.agents.activity.run(prompt, deps=self.deps)
-        state.activities = "result.output.top_activities"
+        state.activities = ["result.output.top_activities"]
         for a in state.activities:
             logger.info(f"  - {a}")
 
