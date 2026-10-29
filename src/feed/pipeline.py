@@ -1,11 +1,11 @@
 from tika import parser
 from langchain_core.documents import Document
-from ..database import database
 from pathlib import Path
 from collections.abc import Iterator
 from .config import splitters
 from collections.abc import Iterable
 import logging
+from ..database import Database
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,7 @@ class Pipeline:
     def __init__(self, metadata: dict[str, str], batch_size: int = 100):
         self.metadata = metadata
         self.batch_size = batch_size
+        self.database = Database()
     
     def load_data(self, path: Path) -> Iterator[Document]:
         if not path.is_dir():
@@ -84,16 +85,14 @@ class Pipeline:
             batch.append(chunk)
 
             if len(batch) >= self.batch_size:
-                database.insert(batch)
+                self.database.insert(batch)
                 batch.clear()
 
         # Insert the remaining chunks (fewer than 100).
         if batch:
-            database.insert(batch)
+            self.database.insert(batch)
     
     def run(self, path: str):
         documents = self.load_data(Path(path))
         chunks = self.split_data(documents)
-
-        # The generator is consumed here.
         self.feed_database(list(chunks))
