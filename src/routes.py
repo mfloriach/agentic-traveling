@@ -3,9 +3,9 @@ from typing import Any
 
 from fastapi import APIRouter, FastAPI, HTTPException
 
-from .dag.errors import ForbiddenError
-from .dag.services.travel_planner import Triage, TripState, ValidationResult
-from .main import graph
+from dag.errors import ForbiddenError
+from dag.services.travel_planner import Triage, TripState, ValidationResult
+from main import graph
 
 router = APIRouter()
 
@@ -32,6 +32,7 @@ async def query_rag_system(query: str) -> dict[str, Any]:
             detail="Forbidden",
         )
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 

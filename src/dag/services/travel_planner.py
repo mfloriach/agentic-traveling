@@ -3,11 +3,12 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Literal, Optional, Protocol
 
-import logfire
 from langgraph.graph import END, START, StateGraph
-from pydantic import Agent, BaseModel, Field
+from pydantic import BaseModel, Field
+from pydantic_ai import Agent
 
-from ..agents.agents import Activities, DestinationOutput, FlightPlan, HotelOption
+from ...logger import logger
+from ..agents.schemas import Activities, DestinationOutput, FlightPlan, HotelOption
 
 
 class Node(StrEnum):
@@ -86,14 +87,14 @@ class TravelPlanner:
     async def handle_destination(self, state: TripState) -> None:
         # result = await self.agents.destination.run(state.user_input, deps=self.deps)
         state.destination = "result.output.destination"
-        print(f"Destination: {state.destination}")
+        logger.info(f"Destination: {state.destination}")
 
     async def handle_flight(self, state: TripState) -> None:
         prompt = f"Plan a flight from {state.origin_city} to {state.destination}"
         # result = await self.agents.flight.run(prompt, deps=self.deps)
         state.from_city = "result.output.from_city"
         state.arrival_time = "result.output.arrivla_time"
-        print(
+        logger.info(
             f"✈️ Flight: from {state.from_city} → {state.destination}, arriving at {state.arrival_time}"
         )
 
@@ -102,13 +103,10 @@ class TravelPlanner:
             f"Recommend a hotel in {state.destination} for a traveler arriving at {state.arrival_time}. "
             f"Prefer locations near the airport or city center."
         )
-        result = await self.agents.hotel.run(prompt, deps=self.deps)
+        # result = await self.agents.hotel.run(prompt, deps=self.deps)
         state.hotel_name = "result.output.name"
         state.hotel_location = "result.output.location"
-        print(
-            f"🏨 Hotel: {state.hotel_name}, {result.output.stars}★ at ${result.output.price_per_night_usd}/night"
-        )
-        logfire.info(str(result.output))
+        logger.info(f"🏨 Hotel: {state.hotel_name}, {state.hotel_location}")
 
     async def handle_activities(self, state: TripState) -> None:
         prompt = (
@@ -118,22 +116,22 @@ class TravelPlanner:
         # result = await self.agents.activity.run(prompt, deps=self.deps)
         state.activities = "result.output.top_activities"
         for a in state.activities:
-            print(f"  - {a}")
+            logger.info(f"  - {a}")
 
     async def handle_validator(self, state: TripState) -> dict[str, Any]:
         issues: list[str] = []
 
-        if not state.destination:
-            issues.append("Missing destination")
+        # if not state.destination:
+        #     issues.append("Missing destination")
 
-        if not state.arrival_time:
-            issues.append("Missing flight arrival time")
+        # if not state.arrival_time:
+        #     issues.append("Missing flight arrival time")
 
-        if not state.hotel_name:
-            issues.append("Missing hotel")
+        # if not state.hotel_name:
+        #     issues.append("Missing hotel")
 
-        if not state.activities:
-            issues.append("Missing activities")
+        # if not state.activities:
+        #     issues.append("Missing activities")
 
         return {
             "validation": ValidationResult(

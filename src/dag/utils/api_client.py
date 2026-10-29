@@ -1,4 +1,3 @@
-import logging
 from typing import Any
 
 import httpx
@@ -8,8 +7,6 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 )
-
-logger = logging.getLogger(__name__)
 
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 

@@ -8,7 +8,7 @@ class DestinationOutput(BaseModel):
 class FlightPlan(BaseModel):
     from_city: str
     to_city: str
-    arrivla_time: str
+    arrival_time: str
 
 
 class HotelOption(BaseModel):
@@ -19,5 +19,4 @@ class HotelOption(BaseModel):
 
 
 class Activities(BaseModel):
-    personalized_for: str
     top_activities: list[str]
