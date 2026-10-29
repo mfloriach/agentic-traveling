@@ -1,11 +1,13 @@
+import uuid
 from dataclasses import dataclass
-from typing import Optional
-from pydantic import BaseModel, Field
-from ..agents.agents import destination, flight, hotel, activities
-import logfire
 from enum import StrEnum
-from typing import Protocol, Literal
-from langgraph.graph import StateGraph, START, END
+from typing import Any, Literal, Optional, Protocol
+
+import logfire
+from langgraph.graph import END, START, StateGraph
+from pydantic import Agent, BaseModel, Field
+
+from ..agents.agents import Activities, DestinationOutput, FlightPlan, HotelOption
 
 
 class Node(StrEnum):
@@ -17,106 +19,120 @@ class Node(StrEnum):
 
 
 class API(Protocol):
-    def get(self, path: str, **kwargs) -> dict: ... 
-    def close() -> None: ...
-    
-@dataclass
-class Services:
-    wheather: API
-    
+    def get(self, path: str, **kwargs) -> dict: ...
+    def close(self) -> None: ...
+
+
 class Triage(BaseModel):
     category: Literal[
-        "destination", "transport", "accommodation",
-        "activities", "restaurants", "itinerary",
-        "budget", "weather", "travel_requirements",
-        "booking_changes", "general",
+        "destination",
+        "transport",
+        "accommodation",
+        "activities",
+        "restaurants",
+        "itinerary",
+        "budget",
+        "weather",
+        "travel_requirements",
+        "booking_changes",
+        "general",
     ]
     priority: Literal["anonymous", "normal", "vip"]
     needs_human: bool = False
     reason: str
-    
+
+
 class ValidationResult(BaseModel):
     passed: bool
     issues: list[str] = Field(default_factory=list)
 
+
 class TripState(BaseModel):
+    user_id: uuid.UUID
+
     user_input: str
+    origin_city: str
     triage: Triage
-    
+
     destination: Optional[str] = None
     from_city: Optional[str] = None
     arrival_time: Optional[str] = None
     hotel_name: Optional[str] = None
     hotel_location: Optional[str] = None
-    
+    activities: Optional[str] = None
+
     validation: ValidationResult
     retry_count: int
 
+
 @dataclass
 class TravelDeps:
-    user_name: str
-    origin_city: str
-    services: Services
+    wheather: API
+
+
+@dataclass
+class Agents:
+    destination: Agent[TravelDeps, DestinationOutput]
+    flight: Agent[TravelDeps, FlightPlan]
+    hotel: Agent[TravelDeps, HotelOption]
+    activity: Agent[TravelDeps, Activities]
+
 
 class TravelPlanner:
-    def __init__(self, deps: TravelDeps):
+    def __init__(self, deps: TravelDeps, agents: Agents):
         self.deps = deps
-        
-        self.destination_agent = destination
-        self.flight_agent = flight
-        self.hotel_agent = hotel
-        self.activity_agent = activities
-       
+        self.agents = agents
+
     async def handle_destination(self, state: TripState) -> None:
-        result = await self.destination_agent.run(state.user_input, deps=self.deps)
-        self.ctx.destination = result.output.destination
-        print(f"Destination: {self.ctx.destination}")
-        
+        # result = await self.agents.destination.run(state.user_input, deps=self.deps)
+        state.destination = "result.output.destination"
+        print(f"Destination: {state.destination}")
+
     async def handle_flight(self, state: TripState) -> None:
-        prompt = f"Plan a flight from {self.deps.origin_city} to {self.ctx.destination}"
-        result = await self.flight_agent.run(prompt, deps=self.deps)
-        self.ctx.from_city = result.output.from_city
-        self.ctx.arrival_time = result.output.arrivla_time
+        prompt = f"Plan a flight from {state.origin_city} to {state.destination}"
+        # result = await self.agents.flight.run(prompt, deps=self.deps)
+        state.from_city = "result.output.from_city"
+        state.arrival_time = "result.output.arrivla_time"
         print(
-            f"✈️ Flight: from {self.ctx.from_city} → {self.ctx.destination}, arriving at {self.ctx.arrival_time}"
+            f"✈️ Flight: from {state.from_city} → {state.destination}, arriving at {state.arrival_time}"
         )
-        
+
     async def handle_hotel(self, state: TripState) -> None:
         prompt = (
-            f"Recommend a hotel in {self.ctx.destination} for a traveler arriving at {self.ctx.arrival_time}. "
+            f"Recommend a hotel in {state.destination} for a traveler arriving at {state.arrival_time}. "
             f"Prefer locations near the airport or city center."
         )
-        result = await self.hotel_agent.run(prompt, deps=self.deps)
-        self.ctx.hotel_name = result.output.name
-        self.ctx.hotel_location = result.output.location
+        result = await self.agents.hotel.run(prompt, deps=self.deps)
+        state.hotel_name = "result.output.name"
+        state.hotel_location = "result.output.location"
         print(
-            f"🏨 Hotel: {self.ctx.hotel_name}, {result.output.stars}★ at ${result.output.price_per_night_usd}/night"
+            f"🏨 Hotel: {state.hotel_name}, {result.output.stars}★ at ${result.output.price_per_night_usd}/night"
         )
         logfire.info(str(result.output))
 
     async def handle_activities(self, state: TripState) -> None:
         prompt = (
-            f"Suggest activities in {self.ctx.destination} close to {self.ctx.hotel_location} "
-            f"and suitable for a traveler arriving at {self.ctx.arrival_time}."
+            f"Suggest activities in {state.destination} close to {state.hotel_location} "
+            f"and suitable for a traveler arriving at {state.arrival_time}."
         )
-        result = await self.activity_agent.run(prompt, deps=self.deps)
-        print(f"🎯 Activities for {result.output.personalized_for}:")
-        for a in result.output.top_activities:
+        # result = await self.agents.activity.run(prompt, deps=self.deps)
+        state.activities = "result.output.top_activities"
+        for a in state.activities:
             print(f"  - {a}")
-            
-    async def handle_validator(self, state: TripState) -> None:
-        issues = []
 
-        if not state.get("destination"):
+    async def handle_validator(self, state: TripState) -> dict[str, Any]:
+        issues: list[str] = []
+
+        if not state.destination:
             issues.append("Missing destination")
 
-        if not state.get("arrival_time"):
+        if not state.arrival_time:
             issues.append("Missing flight arrival time")
 
-        if not state.get("hotel_name"):
+        if not state.hotel_name:
             issues.append("Missing hotel")
 
-        if not state.get("activities"):
+        if not state.activities:
             issues.append("Missing activities")
 
         return {
@@ -125,17 +141,17 @@ class TravelPlanner:
                 issues=issues,
             )
         }
-        
+
     @staticmethod
     def route_after_validation(state: TripState) -> str:
-        if state["validation"].passed:
+        if state.validation.passed:
             return "finish"
 
-        if state.get("retry_count", 0) >= 2:
+        if state.retry_count >= 2:
             return "finish"  # Replace with a failure handler.
 
         return "retry"
-    
+
     def build(self):
         graph = StateGraph(TripState)
 
@@ -161,4 +177,3 @@ class TravelPlanner:
         )
 
         return graph.compile()
-

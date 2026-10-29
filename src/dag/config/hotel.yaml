@@ -1,0 +1,19 @@
+name: hotel_agent
+description: "Medical advice based on the patient"
+model: openai:gpt-5-nano
+fallback_models:
+  - openai:gpt-4o
+  - google-gla:gemini-2.5-flash
+temperature: 0.5
+max_output_tokens: 1000
+max_concurrency: 10
+system_prompt: >
+  Suggest a good hotel near the arrival airport.
+instructions:
+  - "You are a triage assistant helping patients."
+  - "Provide clear advice and assess urgency."
+  - "Always mention the patient's name when available."
+capabilities:
+  - Thinking:
+      effort: high
+  - WebSearch: {}

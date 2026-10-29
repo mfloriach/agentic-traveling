@@ -32,19 +32,19 @@ def is_retryable(exc: BaseException) -> bool:
     return False
 
 
-def log_retry(retry_state) -> None:
-    exc = retry_state.outcome.exception()
+# def log_retry(retry_state) -> None:
+#     exc = retry_state.outcome.exception()
 
-    logger.warning(
-        "http.retry",
-        extra={
-            "attempt": retry_state.attempt_number,
-            "exception": type(exc).__name__ if exc else None,
-            "next_wait_seconds": retry_state.next_action.sleep
-            if retry_state.next_action
-            else None,
-        },
-    )
+#     logger.warning(
+#         "http.retry",
+#         extra={
+#             "attempt": retry_state.attempt_number,
+#             "exception": type(exc).__name__ if exc else None,
+#             "next_wait_seconds": retry_state.next_action.sleep
+#             if retry_state.next_action
+#             else None,
+#         },
+#     )
 
 
 class APIClient:
@@ -68,10 +68,10 @@ class APIClient:
             multiplier=0.5,
             max=8,
         ),
-        before_sleep=log_retry,
+        # before_sleep=log_retry,
         reraise=True,
     )
-    async def get(self, path: str, **kwargs: dict[str, Any]) -> dict[str, Any]:
+    async def get(self, path: str, **kwargs: Any) -> dict[str, Any]:
         response = await self.client.get(path, **kwargs)
         response.raise_for_status()
         return response.json()

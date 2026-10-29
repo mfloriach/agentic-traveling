@@ -1,0 +1,23 @@
+destination:
+  name: destination
+  model: openai:gpt-4o
+  fallback_models: [openai:gpt-4o-mini]
+  system_prompt: Help the user select an ideal travel destination.
+
+flight:
+  name: flight
+  model: anthropic:claude-haiku-4-5
+  fallback_models: [openai:gpt-4o]
+  system_prompt: Plan a realistic flight itinerary from origin to destination.
+
+hotel:
+  name: hotel
+  model: anthropic:claude-haiku-4-5
+  fallback_models: [openai:gpt-4o]
+  system_prompt: Recommend a hotel near the arrival airport or city center.
+
+activities:
+  name: activities
+  model: anthropic:claude-haiku-4-5
+  fallback_models: [openai:gpt-4o]
+  system_prompt: Suggest local activities close to the hotel.

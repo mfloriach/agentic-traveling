@@ -1,18 +1,20 @@
-from tika import parser
-from langchain_core.documents import Document
-from pathlib import Path
-from collections.abc import Iterator
-from .config import splitters
-from collections.abc import Iterable
+from tika import parser  # type: ignore[import-untyped]
+from typing import Any, cast
+from collections.abc import Iterable, Iterator
 import logging
+
+from langchain_core.documents import Document
+from langchain_text_splitters import MarkdownHeaderTextSplitter, TextSplitter
+from pathlib import Path
+from .config import splitters
 from ..database import Database
 
 logger = logging.getLogger(__name__)
 
 EXTENSION_SPLITTERS = {
-    ".go": "code",
-    ".md": "markdown",
-    ".markdown": "markdown",
+    ".go": "text/x-go",
+    ".md": "text/markdown",
+    ".markdown": "text/markdown",
 }
 
 class Pipeline:
@@ -30,11 +32,13 @@ class Pipeline:
                 continue
             
             try:
-                parsed = parser.from_file(str(file_path))
-                
+                parsed = cast(
+                    dict[str, Any], parser.from_file(str(file_path))
+                )
+
                 content = (parsed.get("content") or "").strip()
                 if not content:
-                    return None
+                    continue
 
                 tika_metadata = parsed.get("metadata", {})
                 
@@ -58,7 +62,7 @@ class Pipeline:
     def split_data(self, documents: Iterable[Document]) -> Iterator[Document]:
         for doc in documents:
             extension = doc.metadata.get("extension", "").lower()
-            splitter_name = EXTENSION_SPLITTERS.get(extension, "plain")
+            splitter_name = EXTENSION_SPLITTERS.get(extension, "text/plain")
             splitter = splitters.get(splitter_name)
 
             if splitter is None:
@@ -70,7 +74,12 @@ class Pipeline:
                 continue
 
             try:
-                yield from splitter.split_documents([doc])
+                if isinstance(splitter, TextSplitter):
+                    yield from splitter.split_documents([doc])
+                else:
+                    yield from cast(MarkdownHeaderTextSplitter, splitter).split_text(
+                        doc.page_content
+                    )
             except (ValueError, TypeError, KeyError):
                 logger.exception(
                     "Failed to split document: %s",
@@ -92,7 +101,7 @@ class Pipeline:
         if batch:
             self.database.insert(batch)
     
-    def run(self, path: str):
+    def run(self, path: str) -> None:
         documents = self.load_data(Path(path))
         chunks = self.split_data(documents)
         self.feed_database(list(chunks))
