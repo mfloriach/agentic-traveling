@@ -6,7 +6,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 
-logfire.configure()
+logfire.configure(send_to_logfire="if-token-present")
 logfire.instrument_pydantic_ai()
 
 

@@ -7,7 +7,7 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from ...logger import logger
+from logger import logger
 from ..agents.schemas import Activities, DestinationOutput, FlightPlan, HotelOption
 
 
