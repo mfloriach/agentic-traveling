@@ -4,6 +4,7 @@ from typing import cast
 
 from dotenv import load_dotenv
 
+from config import settings
 from dag.agents.agents import activities, destination, flight, hotel
 from dag.services.travel_planner import API, Agents, TravelDeps, TravelPlanner
 from dag.utils.api_client import APIClient
@@ -29,7 +30,7 @@ def main() -> None:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     import uvicorn
 
-    uvicorn.run("routes:app", host="127.0.0.1", port=8010)
+    uvicorn.run("routes:app", host="127.0.0.1", port=settings.port)
 
 
 if __name__ == "__main__":

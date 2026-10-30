@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
 from logger import logger
+from tracing import traced_node
 
 from ..agents.schemas import Activities, DestinationOutput, FlightPlan, HotelOption
 
@@ -86,11 +87,13 @@ class TravelPlanner:
         self.deps = deps
         self.agents = agents
 
+    @traced_node("destination")
     async def handle_destination(self, state: TripState) -> None:
         # result = await self.agents.destination.run(state.user_input, deps=self.deps)
         state.destination = "result.output.destination"
         logger.info(f"Destination: {state.destination}")
 
+    @traced_node("flight")
     async def handle_flight(self, state: TripState) -> None:
         prompt = f"Plan a flight from {state.origin_city} to {state.destination}"
         # result = await self.agents.flight.run(prompt, deps=self.deps)
@@ -100,6 +103,7 @@ class TravelPlanner:
             f"✈️ Flight: from {state.from_city} → {state.destination}, arriving at {state.arrival_time}"
         )
 
+    @traced_node("hotel")
     async def handle_hotel(self, state: TripState) -> None:
         prompt = (
             f"Recommend a hotel in {state.destination} for a traveler arriving at {state.arrival_time}. "
@@ -110,6 +114,7 @@ class TravelPlanner:
         state.hotel_location = "result.output.location"
         logger.info(f"🏨 Hotel: {state.hotel_name}, {state.hotel_location}")
 
+    @traced_node("activities")
     async def handle_activities(self, state: TripState) -> None:
         prompt = (
             f"Suggest activities in {state.destination} close to {state.hotel_location} "

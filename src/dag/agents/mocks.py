@@ -1,10 +1,16 @@
 import json
 
 from pydantic_ai.messages import ModelResponse, TextPart
+from pydantic_ai.usage import RequestUsage
 
 
 def mock_hotel(messages, info):
     return ModelResponse(
+        model_name="openapi",
+        usage=RequestUsage(
+            input_tokens=150,
+            output_tokens=20,
+        ),
         parts=[
             TextPart(
                 content=json.dumps(
@@ -16,12 +22,17 @@ def mock_hotel(messages, info):
                     }
                 )
             )
-        ]
+        ],
     )
 
 
 def mock_destination(messages, info):
     return ModelResponse(
+        model_name="openapi",
+        usage=RequestUsage(
+            input_tokens=150,
+            output_tokens=20,
+        ),
         parts=[
             TextPart(
                 content=json.dumps(
@@ -30,12 +41,17 @@ def mock_destination(messages, info):
                     }
                 )
             )
-        ]
+        ],
     )
 
 
 def mock_flight(messages, info):
     return ModelResponse(
+        model_name="openapi",
+        usage=RequestUsage(
+            input_tokens=150,
+            output_tokens=20,
+        ),
         parts=[
             TextPart(
                 content=json.dumps(
@@ -46,12 +62,17 @@ def mock_flight(messages, info):
                     }
                 )
             )
-        ]
+        ],
     )
 
 
 def mock_activities(messages, info):
     return ModelResponse(
+        model_name="openapi",
+        usage=RequestUsage(
+            input_tokens=150,
+            output_tokens=20,
+        ),
         parts=[
             TextPart(
                 content=json.dumps(
@@ -60,5 +81,5 @@ def mock_activities(messages, info):
                     }
                 )
             )
-        ]
+        ],
     )

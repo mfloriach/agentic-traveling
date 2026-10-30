@@ -1,7 +1,8 @@
 import uuid
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, FastAPI, HTTPException, Request
+import logfire
+from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from dag.errors import ForbiddenError
@@ -16,7 +17,6 @@ app.include_router(router)
 
 @app.middleware("http")
 async def request_id_middleware(request: Request, call_next):
-    # trust the client's header if given, else mint one; echo it back
     rid = request.headers.get("x-request-id") or uuid.uuid4().hex
     token = request_id.set(rid)
     try:
@@ -27,28 +27,33 @@ async def request_id_middleware(request: Request, call_next):
     return response
 
 
-class Query(BaseModel):
+class Search(BaseModel):
     query: str = Field(min_length=3, max_length=3000)
 
 
 @router.get("/query")
-async def query_rag_system(query: Query) -> dict[str, Any]:
+async def query_rag_system(query: Annotated[Search, Query()]) -> dict[str, Any]:
     uid = uuid.uuid7()
     token = user_id.set(str(uid))
     try:
-        response = await graph.ainvoke(
-            TripState(
-                user_id=uid,
-                user_input=query.query,
-                origin_city="Barcelona",
-                triage=Triage(
-                    category="general", priority="normal", reason="initial request"
-                ),
-                validation=ValidationResult(passed=False),
-                retry_count=0,
+        with logfire.span(
+            "travel.request",
+            request_id=request_id.get(),
+            user_id=user_id.get(),
+        ):
+            response = await graph.ainvoke(
+                TripState(
+                    user_id=uid,
+                    user_input=query.query,
+                    origin_city="Barcelona",
+                    triage=Triage(
+                        category="general", priority="normal", reason="initial request"
+                    ),
+                    validation=ValidationResult(passed=False),
+                    retry_count=0,
+                )
             )
-        )
-        return {"query": query.query, "response": response}
+            return {"query": query.query, "response": response}
     except ForbiddenError:
         raise HTTPException(
             status_code=403,

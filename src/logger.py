@@ -3,8 +3,6 @@ import json
 import logging
 import sys
 
-import logfire
-
 # correlation id for the current request; "-" outside requests
 request_id: contextvars.ContextVar[str] = contextvars.ContextVar(
     "request_id", default="-"
@@ -76,12 +74,10 @@ class JsonFormatter(logging.Formatter):
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(JsonFormatter())
 handler.addFilter(RequestIdFilter())
+
 root = logging.getLogger()
 root.addHandler(handler)
 root.setLevel(logging.INFO)
-
-logfire.configure(send_to_logfire="if-token-present")
-logfire.instrument_pydantic_ai()
 
 
 logger = logging.getLogger("travel_planner")

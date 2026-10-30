@@ -10,6 +10,7 @@ from pydantic_ai.models.function import FunctionModel
 # )
 # from pydantic_ai.models.fallback import FallbackModel
 from ..services.travel_planner import TravelDeps
+from .hooks import acl
 from .mocks import mock_activities, mock_destination, mock_flight, mock_hotel
 from .schemas import Activities, DestinationOutput, FlightPlan, HotelOption
 
@@ -33,6 +34,7 @@ destination = Agent.from_file(
     model=FunctionModel(mock_destination),
     deps_type=TravelDeps,
     output_type=DestinationOutput,
+    capabilities=[acl],
     # tools=[get_weather],
 )
 
@@ -51,6 +53,7 @@ flight = Agent.from_file(
     model=FunctionModel(mock_flight),
     deps_type=TravelDeps,
     output_type=FlightPlan,
+    capabilities=[acl],
 )
 
 
@@ -68,6 +71,7 @@ hotel = Agent.from_file(
     model=FunctionModel(mock_hotel),
     deps_type=TravelDeps,
     output_type=HotelOption,
+    capabilities=[acl],
 )
 
 
@@ -85,4 +89,5 @@ activities = Agent.from_file(
     model=FunctionModel(mock_activities),
     deps_type=TravelDeps,
     output_type=Activities,
+    capabilities=[acl],
 )
