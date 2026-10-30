@@ -12,7 +12,7 @@ class Settings(BaseSettings):
         default="http://localhost:4318/v1/traces",
         validation_alias=AliasChoices("OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_ENDPOINT"),
     )
-    port: int = 8013
+    port: int = 8010
 
 
 settings = Settings()  # type: ignore[call-arg]  # injected from env, not args (pydantic-settings)

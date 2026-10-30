@@ -2,13 +2,14 @@ import uuid
 from typing import Annotated, Any
 
 import logfire
-from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from dag.errors import ForbiddenError
 from dag.services.travel_planner import Triage, TripState, ValidationResult
 from logger import request_id, user_id
-from main import graph
+from main import get_graph
 
 router = APIRouter()
 app = FastAPI()
@@ -32,7 +33,10 @@ class Search(BaseModel):
 
 
 @router.get("/query")
-async def query_rag_system(query: Annotated[Search, Query()]) -> dict[str, Any]:
+async def query_rag_system(
+    query: Annotated[Search, Query()],
+    graph: Annotated[Any, Depends(get_graph)],
+) -> dict[str, Any]:
     uid = uuid.uuid7()
     token = user_id.set(str(uid))
     try:
@@ -51,7 +55,13 @@ async def query_rag_system(query: Annotated[Search, Query()]) -> dict[str, Any]:
                     ),
                     validation=ValidationResult(passed=False),
                     retry_count=0,
-                )
+                ),
+                config=RunnableConfig(
+                    # happy path = 6 super-steps; +5 per retry round-trip.
+                    # 25 (langgraph default) covers retries=2 with slack.
+                    # recursion_limit=3,
+                    # max_concurrency=10,
+                ),
             )
             return {"query": query.query, "response": response}
     except ForbiddenError:

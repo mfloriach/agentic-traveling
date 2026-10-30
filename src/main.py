@@ -25,6 +25,11 @@ planner = TravelPlanner(deps=deps, agents=agents)
 graph = planner.build()
 
 
+def get_graph():
+    """FastAPI dependency: inject the compiled LangGraph into the routes."""
+    return graph
+
+
 def main() -> None:
     # repo root on sys.path so `src.routes` resolves when run as a script
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

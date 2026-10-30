@@ -34,7 +34,7 @@ destination = Agent.from_file(
     model=FunctionModel(mock_destination),
     deps_type=TravelDeps,
     output_type=DestinationOutput,
-    capabilities=[acl],
+    # capabilities=[acl],
     # tools=[get_weather],
 )
 
@@ -71,7 +71,6 @@ hotel = Agent.from_file(
     model=FunctionModel(mock_hotel),
     deps_type=TravelDeps,
     output_type=HotelOption,
-    capabilities=[acl],
 )
 
 
@@ -89,5 +88,4 @@ activities = Agent.from_file(
     model=FunctionModel(mock_activities),
     deps_type=TravelDeps,
     output_type=Activities,
-    capabilities=[acl],
 )
