@@ -2,10 +2,11 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
+from pydantic import BaseModel, Field
 
 from dag.errors import ForbiddenError
 from dag.services.travel_planner import Triage, TripState, ValidationResult
-from logger import request_id
+from logger import request_id, user_id
 from main import graph
 
 router = APIRouter()
@@ -26,13 +27,19 @@ async def request_id_middleware(request: Request, call_next):
     return response
 
 
+class Query(BaseModel):
+    query: str = Field(min_length=3, max_length=3000)
+
+
 @router.get("/query")
-async def query_rag_system(query: str) -> dict[str, Any]:
+async def query_rag_system(query: Query) -> dict[str, Any]:
+    uid = uuid.uuid7()
+    token = user_id.set(str(uid))
     try:
         response = await graph.ainvoke(
             TripState(
-                user_id=uuid.uuid7(),
-                user_input="Plan a trip to Tokyo with a hotel and activities",
+                user_id=uid,
+                user_input=query.query,
                 origin_city="Barcelona",
                 triage=Triage(
                     category="general", priority="normal", reason="initial request"
@@ -41,7 +48,7 @@ async def query_rag_system(query: str) -> dict[str, Any]:
                 retry_count=0,
             )
         )
-        return {"query": query, "response": response}
+        return {"query": query.query, "response": response}
     except ForbiddenError:
         raise HTTPException(
             status_code=403,
@@ -50,4 +57,5 @@ async def query_rag_system(query: str) -> dict[str, Any]:
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
-
+    finally:
+        user_id.reset(token)

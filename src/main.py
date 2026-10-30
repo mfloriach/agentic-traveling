@@ -12,6 +12,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 
 deps = TravelDeps(
+    retries=2,
     wheather=cast("API", APIClient("https://api.open-meteo.com")),
 )
 

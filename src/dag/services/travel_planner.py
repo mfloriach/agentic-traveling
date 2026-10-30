@@ -50,7 +50,7 @@ class ValidationResult(BaseModel):
 
 
 class TripState(BaseModel):
-    user_id: uuid.UUID
+    user_id: Optional[uuid.UUID] = None
 
     user_input: str
     origin_city: str
@@ -69,6 +69,7 @@ class TripState(BaseModel):
 
 @dataclass
 class TravelDeps:
+    retries: int
     wheather: API
 
 
@@ -141,12 +142,11 @@ class TravelPlanner:
             )
         }
 
-    @staticmethod
-    def route_after_validation(state: TripState) -> str:
+    def route_after_validation(self, state: TripState) -> str:
         if state.validation.passed:
             return "finish"
 
-        if state.retry_count >= 2:
+        if state.retry_count >= self.deps.retries:
             return "finish"  # Replace with a failure handler.
 
         return "retry"
