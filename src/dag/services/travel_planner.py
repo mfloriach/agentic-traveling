@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, List, Literal, Optional, Protocol
+from typing import Any, Literal, Optional, Protocol
 
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
@@ -52,17 +52,15 @@ class ValidationResult(BaseModel):
 
 class TripState(BaseModel):
     user_id: Optional[uuid.UUID] = None
+    triage: Triage
 
     user_input: str
     origin_city: str
-    triage: Triage
+    destination: Optional[DestinationOutput] = None
 
-    destination: Optional[str] = None
-    from_city: Optional[str] = None
-    arrival_time: Optional[str] = None
-    hotel_name: Optional[str] = None
-    hotel_location: Optional[str] = None
-    activities: Optional[List[str]] = None
+    hotel: Optional[HotelOption] = None
+    flight: Optional[FlightPlan] = None
+    activities: Optional[Activities] = None
 
     validation: ValidationResult
     retry_count: int
@@ -89,39 +87,43 @@ class TravelPlanner:
 
     @traced_node("destination")
     async def handle_destination(self, state: TripState) -> None:
-        # result = await self.agents.destination.run(state.user_input, deps=self.deps)
-        state.destination = "result.output.destination"
+        result = await self.agents.destination.run(state.user_input, deps=self.deps)
+        state.destination = result.output
         logger.info(f"Destination: {state.destination}")
 
     @traced_node("flight")
     async def handle_flight(self, state: TripState) -> None:
+        if not state.destination:
+            raise ValueError("Destination is required before flight")
+
         prompt = f"Plan a flight from {state.origin_city} to {state.destination}"
-        # result = await self.agents.flight.run(prompt, deps=self.deps)
-        state.from_city = "result.output.from_city"
-        state.arrival_time = "result.output.arrivla_time"
+        result = await self.agents.flight.run(prompt, deps=self.deps)
+        state.flight = result.output
         logger.info(
-            f"✈️ Flight: from {state.from_city} → {state.destination}, arriving at {state.arrival_time}"
+            f"✈️ Flight: from {state.flight.from_city} → {state.destination}, arriving at {state.flight.arrival_time}"
         )
 
     @traced_node("hotel")
     async def handle_hotel(self, state: TripState) -> None:
+        if not state.destination:
+            raise ValueError("Destination is required before hotel recommendation")
+
         prompt = (
-            f"Recommend a hotel in {state.destination} for a traveler arriving at {state.arrival_time}. "
+            f"Recommend a hotel in {state.destination} for a traveler arriving. "
             f"Prefer locations near the airport or city center."
         )
-        # result = await self.agents.hotel.run(prompt, deps=self.deps)
-        state.hotel_name = "result.output.name"
-        state.hotel_location = "result.output.location"
-        logger.info(f"🏨 Hotel: {state.hotel_name}, {state.hotel_location}")
+        result = await self.agents.hotel.run(prompt, deps=self.deps)
+        state.hotel = result.output
+        logger.info(f"🏨 Hotel: {state.hotel.name}, {state.hotel.location}")
 
     @traced_node("activities")
     async def handle_activities(self, state: TripState) -> None:
-        prompt = (
-            f"Suggest activities in {state.destination} close to {state.hotel_location} "
-            f"and suitable for a traveler arriving at {state.arrival_time}."
-        )
-        # result = await self.agents.activity.run(prompt, deps=self.deps)
-        state.activities = ["result.output.top_activities"]
+        if not state.destination:
+            raise ValueError("Destination is required before activities")
+
+        prompt = f"Suggest activities in {state.destination} close to {state.hotel} "
+        result = await self.agents.activity.run(prompt, deps=self.deps)
+        state.activities = result.output
         for a in state.activities:
             logger.info(f"  - {a}")
 
@@ -167,8 +169,10 @@ class TravelPlanner:
 
         graph.add_edge(START, "destination")
         graph.add_edge("destination", "flight")
-        graph.add_edge("flight", "hotel")
-        graph.add_edge("hotel", "activities")
+        graph.add_edge("destination", "hotel")
+        graph.add_edge("destination", "activities")
+        graph.add_edge("flight", "validator")
+        graph.add_edge("hotel", "validator")
         graph.add_edge("activities", "validator")
 
         graph.add_conditional_edges(

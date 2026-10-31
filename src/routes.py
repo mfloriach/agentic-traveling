@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from dag.errors import ForbiddenError
 from dag.services.travel_planner import Triage, TripState, ValidationResult
-from logger import request_id, user_id
+from logger import logger, request_id, user_id
 from main import get_graph
 
 router = APIRouter()
@@ -70,7 +70,7 @@ async def query_rag_system(
             detail="Forbidden",
         )
     except Exception as e:
-        print(e)
+        logger.exception("Request failed")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         user_id.reset(token)

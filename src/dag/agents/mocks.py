@@ -17,7 +17,7 @@ def mock_hotel(messages, info):
                     {
                         "name": "Hotel Example",
                         "location": "Near Taipei Airport",
-                        "price_per_night": 100,
+                        "price_per_night_usd": 100,
                         "stars": 12,
                     }
                 )
@@ -58,7 +58,7 @@ def mock_flight(messages, info):
                     {
                         "from_city": "Taipe",
                         "to_city": "Barcelona",
-                        "arrivla_time": "12pm",
+                        "arrival_time": "12pm",
                     }
                 )
             )
