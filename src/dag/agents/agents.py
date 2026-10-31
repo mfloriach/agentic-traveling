@@ -9,7 +9,7 @@ from pydantic_ai.models.function import FunctionModel
 #     ModelUnavailableError,
 # )
 # from pydantic_ai.models.fallback import FallbackModel
-from ..services.travel_planner import TravelDeps
+from ..workflows.travel_planner import TravelDeps
 from .hooks import acl
 from .mocks import mock_activities, mock_destination, mock_flight, mock_hotel
 from .schemas import ActivitiesOutput, DestinationOutput, FlightOutput, HotelOutput

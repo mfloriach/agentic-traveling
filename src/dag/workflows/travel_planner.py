@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Literal, Optional, Protocol
+from typing import Literal, NotRequired, Protocol, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
@@ -55,19 +55,19 @@ class ValidationResult(BaseModel):
     issues: list[str] = Field(default_factory=list)
 
 
-class TripState(BaseModel):
-    user_id: Optional[uuid.UUID] = None
+class TripState(TypedDict):
+    user_id: NotRequired[uuid.UUID]
     triage: Triage
 
     user_input: str
     origin_city: str
-    destination: Optional[DestinationOutput] = None
+    destination: NotRequired[DestinationOutput]
 
-    hotel: Optional[HotelOutput] = None
-    flight: Optional[FlightOutput] = None
-    activities: Optional[ActivitiesOutput] = None
+    hotel: NotRequired[HotelOutput]
+    flight: NotRequired[FlightOutput]
+    activities: NotRequired[ActivitiesOutput]
 
-    validation: ValidationResult
+    validation: NotRequired[ValidationResult]
     retry_count: int
 
 
@@ -92,75 +92,75 @@ class TravelPlanner:
 
     @traced_node(Node.DESTINATION)
     async def handle_destination(self, state: TripState) -> dict:
-        result = await self.agents.destination.run(state.user_input, deps=self.deps)
-        state.destination = result.output
-        logger.info(f"Destination: {state.destination}")
-        return {"destination": state.destination.dict}
+        result = await self.agents.destination.run(state["user_input"], deps=self.deps)
+        logger.info(f"Destination: {result.output}")
+        return {"destination": result.output}
 
     @traced_node(Node.FLIGHT)
-    async def handle_flight(self, state: TripState) -> FlightOutput:
-        if not state.destination:
+    async def handle_flight(self, state: TripState) -> dict:
+        if "destination" not in state:
             raise ValueError("Destination is required before flight")
 
-        prompt = f"Plan a flight from {state.origin_city} to {state.destination}"
+        prompt = f"Plan a flight from {state['origin_city']} to {state['destination']}"
         result = await self.agents.flight.run(prompt, deps=self.deps)
-        state.flight = result.output
         logger.info(
-            f"✈️ Flight: from {state.flight.from_city} → {state.destination}, arriving at {state.flight.arrival_time}"
+            f"✈️ Flight: from {result.output.from_city} → {result.output.to_city}, arriving at {result.output.arrival_time}"
         )
-        return state.flight
+        return {"flight": result.output}
 
     @traced_node(Node.HOTEL)
-    async def handle_hotel(self, state: TripState) -> HotelOutput:
-        if not state.destination:
+    async def handle_hotel(self, state: TripState) -> dict:
+        if "destination" not in state:
             raise ValueError("Destination is required before hotel recommendation")
 
         prompt = (
-            f"Recommend a hotel in {state.destination} for a traveler arriving. "
+            f"Recommend a hotel in {state['destination']} for a traveler arriving. "
             f"Prefer locations near the airport or city center."
         )
         result = await self.agents.hotel.run(prompt, deps=self.deps)
-        state.hotel = result.output
-        logger.info(f"🏨 Hotel: {state.hotel.name}, {state.hotel.location}")
-        return state.hotel
+        logger.info(f"🏨 Hotel: {result.output.name}, {result.output.location}")
+        return {"hotel": result.output}
 
     @traced_node(Node.ACTIVITIES)
-    async def handle_activities(self, state: TripState) -> ActivitiesOutput:
-        if not state.destination:
+    async def handle_activities(self, state: TripState) -> dict:
+        if "destination" not in state:
             raise ValueError("Destination is required before activities")
 
-        prompt = f"Suggest activities in {state.destination} close to {state.hotel} "
+        prompt = (
+            f"Suggest activities in {state['destination']} close to {'hotel.name'} "
+        )
         result = await self.agents.activity.run(prompt, deps=self.deps)
-        state.activities = result.output
-        for a in state.activities:
+        for a in result.output:
             logger.info(f"  - {a}")
-        return state.activities
+        return {"activities": result.output}
 
-    async def handle_validator(self, state: TripState) -> ValidationResult:
+    async def handle_validator(self, state: TripState) -> dict:
         issues: list[str] = []
 
-        # if not state.destination:
-        #     issues.append("Missing destination")
+        if "destination" not in state:
+            issues.append("Missing destination")
 
-        # if not state.arrival_time:
-        #     issues.append("Missing flight arrival time")
+        if "flight" not in state:
+            issues.append("Missing flight arrival time")
 
-        # if not state.hotel_name:
-        #     issues.append("Missing hotel")
+        if "hotel" not in state:
+            issues.append("Missing hotel")
 
-        # if not state.activities:
-        #     issues.append("Missing activities")
+        if "activities" not in state:
+            issues.append("Missing activities")
 
-        return ValidationResult(
-            passed=True,  # not issues,
-            issues=issues,
-        )
+        return {
+            "validation": ValidationResult(
+                passed=not issues,
+                issues=issues,
+            )
+        }
 
     def route_after_validation(self, state: TripState) -> str:
-        if state.validation.passed:
+        if "validation" in state and state["validation"].passed:
             return "finish"
 
-        if state.retry_count >= self.deps.retries:
+        if state["retry_count"] >= self.deps.retries:
             return "finish"  # Replace with a failure handler.
 
         return "retry"

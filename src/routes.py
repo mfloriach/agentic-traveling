@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from dag.errors import ForbiddenError
-from dag.services.travel_planner import Triage, TripState, ValidationResult
+from dag.workflows.travel_planner import Triage, TripState, ValidationResult
 from logger import logger, request_id, user_id
 from main import get_graph
 
@@ -60,7 +60,7 @@ async def query_rag_system(
                     # happy path = 6 super-steps; +5 per retry round-trip.
                     # 25 (langgraph default) covers retries=2 with slack.
                     # recursion_limit=3,
-                    # max_concurrency=10,
+                    max_concurrency=10,
                 ),
             )
             return {"query": query.query, "response": response}

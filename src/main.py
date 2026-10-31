@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 
 from config import settings
 from dag.agents.agents import activities, destination, flight, hotel
-from dag.services.travel_planner import API, Agents, TravelDeps, TravelPlanner
 from dag.utils.api_client import APIClient
+from dag.workflows.travel_planner import API, Agents, TravelDeps, TravelPlanner
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
