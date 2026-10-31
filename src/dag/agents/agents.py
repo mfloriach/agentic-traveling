@@ -12,7 +12,7 @@ from pydantic_ai.models.function import FunctionModel
 from ..services.travel_planner import TravelDeps
 from .hooks import acl
 from .mocks import mock_activities, mock_destination, mock_flight, mock_hotel
-from .schemas import Activities, DestinationOutput, FlightPlan, HotelOption
+from .schemas import ActivitiesOutput, DestinationOutput, FlightOutput, HotelOutput
 
 # from .tools import get_weather
 
@@ -52,7 +52,7 @@ flight = Agent.from_file(
     # ),
     model=FunctionModel(mock_flight),
     deps_type=TravelDeps,
-    output_type=FlightPlan,
+    output_type=FlightOutput,
     capabilities=[acl],
 )
 
@@ -70,7 +70,7 @@ hotel = Agent.from_file(
     # ),
     model=FunctionModel(mock_hotel),
     deps_type=TravelDeps,
-    output_type=HotelOption,
+    output_type=HotelOutput,
 )
 
 
@@ -87,5 +87,5 @@ activities = Agent.from_file(
     # ),
     model=FunctionModel(mock_activities),
     deps_type=TravelDeps,
-    output_type=Activities,
+    output_type=ActivitiesOutput,
 )

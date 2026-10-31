@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Literal, Optional, Protocol
+from typing import Literal, Optional, Protocol
 
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
@@ -10,14 +10,19 @@ from pydantic_ai import Agent
 from logger import logger
 from tracing import traced_node
 
-from ..agents.schemas import Activities, DestinationOutput, FlightPlan, HotelOption
+from ..agents.schemas import (
+    ActivitiesOutput,
+    DestinationOutput,
+    FlightOutput,
+    HotelOutput,
+)
 
 
 class Node(StrEnum):
-    ROUTER = "router"
-    RESEARCH_HOTEL = "research:hotel"
-    RESEARCH_FLIGHTS = "research:flight"
-    RESEARCH_ACTIVITIES = "research:activities"
+    DESTINATION = "destination"
+    HOTEL = "hotel"
+    FLIGHT = "flight"
+    ACTIVITIES = "activities"
     VALIDATOR = "validator"
 
 
@@ -58,9 +63,9 @@ class TripState(BaseModel):
     origin_city: str
     destination: Optional[DestinationOutput] = None
 
-    hotel: Optional[HotelOption] = None
-    flight: Optional[FlightPlan] = None
-    activities: Optional[Activities] = None
+    hotel: Optional[HotelOutput] = None
+    flight: Optional[FlightOutput] = None
+    activities: Optional[ActivitiesOutput] = None
 
     validation: ValidationResult
     retry_count: int
@@ -75,9 +80,9 @@ class TravelDeps:
 @dataclass
 class Agents:
     destination: Agent[TravelDeps, DestinationOutput]
-    flight: Agent[TravelDeps, FlightPlan]
-    hotel: Agent[TravelDeps, HotelOption]
-    activity: Agent[TravelDeps, Activities]
+    flight: Agent[TravelDeps, FlightOutput]
+    hotel: Agent[TravelDeps, HotelOutput]
+    activity: Agent[TravelDeps, ActivitiesOutput]
 
 
 class TravelPlanner:
@@ -85,14 +90,15 @@ class TravelPlanner:
         self.deps = deps
         self.agents = agents
 
-    @traced_node("destination")
-    async def handle_destination(self, state: TripState) -> None:
+    @traced_node(Node.DESTINATION)
+    async def handle_destination(self, state: TripState) -> dict:
         result = await self.agents.destination.run(state.user_input, deps=self.deps)
         state.destination = result.output
         logger.info(f"Destination: {state.destination}")
+        return {"destination": state.destination.dict}
 
-    @traced_node("flight")
-    async def handle_flight(self, state: TripState) -> None:
+    @traced_node(Node.FLIGHT)
+    async def handle_flight(self, state: TripState) -> FlightOutput:
         if not state.destination:
             raise ValueError("Destination is required before flight")
 
@@ -102,9 +108,10 @@ class TravelPlanner:
         logger.info(
             f"✈️ Flight: from {state.flight.from_city} → {state.destination}, arriving at {state.flight.arrival_time}"
         )
+        return state.flight
 
-    @traced_node("hotel")
-    async def handle_hotel(self, state: TripState) -> None:
+    @traced_node(Node.HOTEL)
+    async def handle_hotel(self, state: TripState) -> HotelOutput:
         if not state.destination:
             raise ValueError("Destination is required before hotel recommendation")
 
@@ -115,9 +122,10 @@ class TravelPlanner:
         result = await self.agents.hotel.run(prompt, deps=self.deps)
         state.hotel = result.output
         logger.info(f"🏨 Hotel: {state.hotel.name}, {state.hotel.location}")
+        return state.hotel
 
-    @traced_node("activities")
-    async def handle_activities(self, state: TripState) -> None:
+    @traced_node(Node.ACTIVITIES)
+    async def handle_activities(self, state: TripState) -> ActivitiesOutput:
         if not state.destination:
             raise ValueError("Destination is required before activities")
 
@@ -126,8 +134,9 @@ class TravelPlanner:
         state.activities = result.output
         for a in state.activities:
             logger.info(f"  - {a}")
+        return state.activities
 
-    async def handle_validator(self, state: TripState) -> dict[str, Any]:
+    async def handle_validator(self, state: TripState) -> ValidationResult:
         issues: list[str] = []
 
         # if not state.destination:
@@ -142,12 +151,10 @@ class TravelPlanner:
         # if not state.activities:
         #     issues.append("Missing activities")
 
-        return {
-            "validation": ValidationResult(
-                passed=not issues,
-                issues=issues,
-            )
-        }
+        return ValidationResult(
+            passed=True,  # not issues,
+            issues=issues,
+        )
 
     def route_after_validation(self, state: TripState) -> str:
         if state.validation.passed:
@@ -161,22 +168,22 @@ class TravelPlanner:
     def build(self):
         graph = StateGraph(TripState)
 
-        graph.add_node("destination", self.handle_destination)
-        graph.add_node("flight", self.handle_flight)
-        graph.add_node("hotel", self.handle_hotel)
-        graph.add_node("activities", self.handle_activities)
-        graph.add_node("validator", self.handle_validator)
+        graph.add_node(Node.DESTINATION, self.handle_destination)
+        graph.add_node(Node.FLIGHT, self.handle_flight)
+        graph.add_node(Node.HOTEL, self.handle_hotel)
+        graph.add_node(Node.ACTIVITIES, self.handle_activities)
+        graph.add_node(Node.VALIDATOR, self.handle_validator)
 
-        graph.add_edge(START, "destination")
-        graph.add_edge("destination", "flight")
-        graph.add_edge("destination", "hotel")
-        graph.add_edge("destination", "activities")
-        graph.add_edge("flight", "validator")
-        graph.add_edge("hotel", "validator")
-        graph.add_edge("activities", "validator")
+        graph.add_edge(START, Node.DESTINATION)
+        graph.add_edge(Node.DESTINATION, Node.FLIGHT)
+        graph.add_edge(Node.DESTINATION, Node.HOTEL)
+        graph.add_edge(Node.DESTINATION, Node.ACTIVITIES)
+        graph.add_edge(Node.FLIGHT, Node.VALIDATOR)
+        graph.add_edge(Node.HOTEL, Node.VALIDATOR)
+        graph.add_edge(Node.ACTIVITIES, Node.VALIDATOR)
 
         graph.add_conditional_edges(
-            "validator",
+            Node.VALIDATOR,
             self.route_after_validation,
             {
                 "finish": END,
