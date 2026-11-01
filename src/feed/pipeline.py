@@ -1,13 +1,47 @@
-from tika import parser  # type: ignore[import-untyped]
-from typing import Any, cast
-from collections.abc import Iterable, Iterator
 import logging
+import uuid
+from collections.abc import Iterable, Iterator
+from pathlib import Path
+from typing import Any, TypedDict, cast
 
 from langchain_core.documents import Document
-from langchain_text_splitters import MarkdownHeaderTextSplitter, TextSplitter
-from pathlib import Path
-from .config import splitters
-from ..database import Database
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_text_splitters import (
+    Language,
+    MarkdownHeaderTextSplitter,
+    RecursiveCharacterTextSplitter,
+)
+from qdrant_client import QdrantClient
+from qdrant_client.models import PointStruct
+from tika import parser  # type: ignore[import-untyped]
+
+COLLECTION_NAME = "my_collection"
+
+TIKA_SERVER = "http://localhost:9998"
+
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+splitters = {
+    "text/x-go": RecursiveCharacterTextSplitter.from_language(
+        language=Language.GO,
+        chunk_size=1000,
+        chunk_overlap=100,
+    ),
+    "text/markdown": MarkdownHeaderTextSplitter(
+        headers_to_split_on=[
+            ("#", "h1"),
+            ("##", "h2"),
+            ("###", "h3"),
+        ]
+    ),
+    "text/plain": RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50),
+}
+
+
+class TikaResult(TypedDict):
+    metadata: dict[str, Any]
+    content: str | None
+
 
 logger = logging.getLogger(__name__)
 
@@ -17,91 +51,124 @@ EXTENSION_SPLITTERS = {
     ".markdown": "text/markdown",
 }
 
+
 class Pipeline:
-    def __init__(self, metadata: dict[str, str], batch_size: int = 100):
+    def __init__(self, metadata: dict[str, str] = {}, batch_size: int = 100):
         self.metadata = metadata
         self.batch_size = batch_size
-        self.database = Database()
-    
-    def load_data(self, path: Path) -> Iterator[Document]:
+        self.client = QdrantClient(url="http://localhost:6333")
+        # self.client.create_collection(
+        #     collection_name=COLLECTION_NAME,
+        #     vectors_config=VectorParams(size=384, distance=Distance.COSINE),
+        # )
+
+    def load_data(self, path: Path) -> Iterator[Path]:
         if not path.is_dir():
             raise NotADirectoryError(f"Not a directory: {path}")
-        
+
         for file_path in path.iterdir():
             if not file_path.is_file():
                 continue
-            
-            try:
-                parsed = cast(
-                    dict[str, Any], parser.from_file(str(file_path))
-                )
 
-                content = (parsed.get("content") or "").strip()
-                if not content:
-                    continue
+            yield file_path
 
-                tika_metadata = parsed.get("metadata", {})
-                
-                yield Document(
-                    page_content=content,
-                    metadata={
-                        "source": str(file_path),
-                        "title": tika_metadata.get("dc:title") or file_path.stem,
-                        "extension": file_path.suffix.lower(),
-                        "author": tika_metadata.get("dc:creator"),
-                        "content_type": tika_metadata.get("Content-Type"),
-                        "created": tika_metadata.get("dcterms:created"),
-                        "modified": tika_metadata.get("dcterms:modified"),
-                        **self.metadata,
-                    },
-                )
-            except Exception:
-                logger.exception("Failed to load document: %s", file_path)
+    def extract_data(self, paths: Iterable[Path]) -> Iterator[Document]:
+        for path in paths:
+            parsed = cast(
+                TikaResult,
+                parser.from_file(
+                    filename=str(path),
+                    serverEndpoint=TIKA_SERVER,
+                ),
+            )
+
+            content = parsed["metadata"]["tk:content"]
+            if not content:
                 continue
 
-    def split_data(self, documents: Iterable[Document]) -> Iterator[Document]:
+            metadata = parsed["metadata"]
+
+            yield Document(
+                page_content=content,
+                metadata={
+                    "id": str(uuid.uuid4()),
+                    "source": str(path),
+                    "title": metadata.get("dc:title") or path.stem,
+                    "extension": path.suffix.lower(),
+                    "author": metadata.get("dc:creator"),
+                    "content_type": metadata.get("Content-Type"),
+                    "created": metadata.get("dcterms:created"),
+                    "modified": metadata.get("dcterms:modified"),
+                    **self.metadata,
+                },
+            )
+
+    def split_data(self, documents: Iterable[Document]) -> Iterator[dict[str, Any]]:
         for doc in documents:
             extension = doc.metadata.get("extension", "").lower()
             splitter_name = EXTENSION_SPLITTERS.get(extension, "text/plain")
             splitter = splitters.get(splitter_name)
 
-            if splitter is None:
-                logger.error(
-                    "Splitter %r is not configured for %s",
-                    splitter_name,
-                    doc.metadata.get("source", "unknown"),
-                )
-                continue
+            texts = cast(MarkdownHeaderTextSplitter, splitter).split_text(
+                doc.page_content
+            )
 
-            try:
-                if isinstance(splitter, TextSplitter):
-                    yield from splitter.split_documents([doc])
-                else:
-                    yield from cast(MarkdownHeaderTextSplitter, splitter).split_text(
-                        doc.page_content
-                    )
-            except (ValueError, TypeError, KeyError):
-                logger.exception(
-                    "Failed to split document: %s",
-                    doc.metadata.get("source", "unknown"),
-                )
-                continue
+            for index, text in enumerate(texts):
+                yield {
+                    "chunk_id": str(uuid.uuid4()),
+                    "document_id": doc.id,
+                    "chunk_index": index,
+                    "content": text,
+                    "source": doc.metadata["source"],
+                    "title": doc.metadata["title"],
+                }
 
-    def feed_database(self, chunks: Iterable[Document]) -> None:
-        batch: list[Document] = []
+    def feed_database(self, chunks: Iterable[dict[str, Any]]) -> None:
+        batch: list[dict[str, Any]] = []
 
         for chunk in chunks:
             batch.append(chunk)
 
             if len(batch) >= self.batch_size:
-                self.database.insert(batch)
+                self._insert_batch(batch)
                 batch.clear()
 
-        # Insert the remaining chunks (fewer than 100).
         if batch:
-            self.database.insert(batch)
-    
+            self._insert_batch(batch)
+
+    def _insert_batch(self, batch: list[dict[str, Any]]) -> None:
+        texts = [chunk["content"] for chunk in batch]
+
+        print(texts)
+
+        vectors = embeddings.embed_documents(texts)
+
+        points = [
+            PointStruct(
+                id=chunk["chunk_id"],
+                vector=vector,
+                payload={
+                    **chunk,
+                    "content": chunk["content"],
+                },
+            )
+            for chunk, vector in zip(batch, vectors)
+        ]
+
+        print(points)
+
+        self.client.upsert(
+            collection_name=COLLECTION_NAME,
+            points=points,
+            wait=True,
+        )
+
+        logger.info("Inserted %d chunks into Qdrant", len(points))
+
     def run(self, path: str) -> None:
-        documents = self.load_data(Path(path))
+        paths = self.load_data(Path(path))
+        documents = self.extract_data(paths)
         chunks = self.split_data(documents)
-        self.feed_database(list(chunks))
+        self.feed_database(chunks)
+
+        print("finished")
