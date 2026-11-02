@@ -6,9 +6,9 @@ from langchain_community.embeddings import (
 from qdrant_client import QdrantClient  # type: ignore[import-not-found, import-untyped]
 from qdrant_client.models import (  # type: ignore[import-not-found, import-untyped]
     Distance,
+    Document,
     Modifier,
     PointStruct,
-    SparseIndexParams,
     SparseVectorParams,
     VectorParams,
 )
@@ -28,12 +28,14 @@ class QdrantDatabase:
         if not self.client.collection_exists(collection_name=collection_name):
             self.client.create_collection(
                 collection_name=collection_name,
-                vectors_config=VectorParams(size=384, distance=Distance.COSINE),
+                vectors_config={
+                    "dense": VectorParams(
+                        size=384,
+                        distance=Distance.COSINE,
+                    )
+                },
                 sparse_vectors_config={
-                    "bm25_vectors": SparseVectorParams(
-                        index=SparseIndexParams(
-                            on_disk=False,
-                        ),
+                    "bm25": SparseVectorParams(
                         modifier=Modifier.IDF,  # Computes IDF score server-side
                     )
                 },
@@ -57,21 +59,26 @@ class QdrantDatabase:
 
     def _insert(self, batch: list[Chunk]) -> None:
         texts = [chunk.content for chunk in batch]
-
         vectors = embeddings.embed_documents(texts)
 
-        points = [
-            PointStruct(
-                id=chunk.chunk_id,
-                vector=vector,
-                payload={
-                    **chunk.__dict__,
-                    "content": chunk.content,
-                    "embedding_model": self.get_embedding_model(),
-                },
+        points = []
+        for chunk, vector in zip(batch, vectors):
+            points.append(
+                PointStruct(
+                    id=chunk.chunk_id,
+                    vector={
+                        "dense": vector,
+                        "bm25": Document(
+                            text=chunk.content,
+                            model="Qdrant/bm25",
+                        ),
+                    },
+                    payload={
+                        **chunk.__dict__,
+                        "embedding_model": self.get_embedding_model(),
+                    },
+                )
             )
-            for chunk, vector in zip(batch, vectors)
-        ]
 
         self.client.upsert(
             collection_name=self.collection_name,

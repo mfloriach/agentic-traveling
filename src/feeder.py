@@ -16,7 +16,7 @@ def main() -> None:
         splitter=Splitter(),
         loader=LoaderLocal(),
     )
-    pipeline.run(Path("./samples"))
+    pipeline.run(Path(__file__).resolve().parent.parent / "samples")
 
 
 if __name__ == "__main__":
