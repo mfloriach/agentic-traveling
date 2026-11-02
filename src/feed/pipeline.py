@@ -1,36 +1,26 @@
-from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from pathlib import Path
+from typing import Protocol
 
 from .chunks import Chunk, Document
 
 
-class Database(ABC):
-    @abstractmethod
-    def get_embedding_model(self) -> str:
-        pass
+class Database(Protocol):
+    def get_embedding_model(self) -> str: ...
 
-    @abstractmethod
-    def insert(self, chunks: Iterable[Chunk]) -> None:
-        pass
+    def insert(self, chunks: Iterable[Chunk]) -> None: ...
 
 
-class Loader(ABC):
-    @abstractmethod
-    def load(self, path: Path) -> Iterator[Path]:
-        pass
+class Loader(Protocol):
+    def load(self, path: Path) -> Iterator[Path]: ...
 
 
-class Splitter(ABC):
-    @abstractmethod
-    def split(self, doc: Document) -> Iterator[Chunk]:
-        pass
+class Splitter(Protocol):
+    def split(self, doc: Document) -> Iterator[Chunk]: ...
 
 
-class Parser(ABC):
-    @abstractmethod
-    def parse(self, file_path: Path) -> Document | None:
-        pass
+class Parser(Protocol):
+    def parse(self, file_path: Path) -> Document | None: ...
 
 
 class Pipeline:

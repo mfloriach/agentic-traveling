@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, TypedDict, cast
 
-from tika import parser  # type: ignore[import-untyped]
+from tika import parser  # type: ignore[import-not-found, import-untyped]
 
 from .chunks import Document, content_hash, stable_document_id
 
