@@ -26,6 +26,29 @@ class Node(StrEnum):
     VALIDATOR = "validator"
 
 
+# Typed per-node updates: static-checked by pyright/mypy, value types reused
+# from the agent output schemas (single source — no duplicated models).
+class DestinationUpdate(TypedDict):
+    destination: DestinationOutput
+
+
+class FlightUpdate(TypedDict):
+    flight: FlightOutput
+
+
+class HotelUpdate(TypedDict):
+    hotel: HotelOutput
+
+
+class ActivitiesUpdate(TypedDict):
+    activities: ActivitiesOutput
+
+
+class ValidationUpdate(TypedDict):
+    validation: ValidationResult
+    retry_count: int
+
+
 class API(Protocol):
     def get(self, path: str, **kwargs) -> dict: ...
     def close(self) -> None: ...
@@ -91,17 +114,19 @@ class TravelPlanner:
         self.agents = agents
 
     @traced_node(Node.DESTINATION)
-    async def handle_destination(self, state: TripState) -> dict:
+    async def handle_destination(self, state: TripState) -> DestinationUpdate:
         result = await self.agents.destination.run(state["user_input"], deps=self.deps)
         logger.info(f"Destination: {result.output}")
         return {"destination": result.output}
 
     @traced_node(Node.FLIGHT)
-    async def handle_flight(self, state: TripState) -> dict:
+    async def handle_flight(self, state: TripState) -> FlightUpdate:
         if "destination" not in state:
             raise ValueError("Destination is required before flight")
 
-        prompt = f"Plan a flight from {state['origin_city']} to {state['destination']}"
+        prompt = (
+            f"Plan a flight from {state['origin_city']} to {state['destination'].destination}"
+        )
         result = await self.agents.flight.run(prompt, deps=self.deps)
         logger.info(
             f"✈️ Flight: from {result.output.from_city} → {result.output.to_city}, arriving at {result.output.arrival_time}"
@@ -109,12 +134,12 @@ class TravelPlanner:
         return {"flight": result.output}
 
     @traced_node(Node.HOTEL)
-    async def handle_hotel(self, state: TripState) -> dict:
+    async def handle_hotel(self, state: TripState) -> HotelUpdate:
         if "destination" not in state:
             raise ValueError("Destination is required before hotel recommendation")
 
         prompt = (
-            f"Recommend a hotel in {state['destination']} for a traveler arriving. "
+            f"Recommend a hotel in {state['destination'].destination} for a traveler arriving. "
             f"Prefer locations near the airport or city center."
         )
         result = await self.agents.hotel.run(prompt, deps=self.deps)
@@ -122,19 +147,20 @@ class TravelPlanner:
         return {"hotel": result.output}
 
     @traced_node(Node.ACTIVITIES)
-    async def handle_activities(self, state: TripState) -> dict:
+    async def handle_activities(self, state: TripState) -> ActivitiesUpdate:
         if "destination" not in state:
             raise ValueError("Destination is required before activities")
 
-        prompt = (
-            f"Suggest activities in {state['destination']} close to {'hotel.name'} "
+        result = await self.agents.activity.run(
+            # runs in parallel with `hotel`, so it can't depend on its output
+            f"Suggest activities in {state['destination'].destination}",
+            deps=self.deps,
         )
-        result = await self.agents.activity.run(prompt, deps=self.deps)
-        for a in result.output:
-            logger.info(f"  - {a}")
+        for activity in result.output.top_activities:
+            logger.info(f"  - {activity}")
         return {"activities": result.output}
 
-    async def handle_validator(self, state: TripState) -> dict:
+    async def handle_validator(self, state: TripState) -> ValidationUpdate:
         issues: list[str] = []
 
         if "destination" not in state:
@@ -153,7 +179,8 @@ class TravelPlanner:
             "validation": ValidationResult(
                 passed=not issues,
                 issues=issues,
-            )
+            ),
+            "retry_count": state["retry_count"] + (0 if not issues else 1),
         }
 
     def route_after_validation(self, state: TripState) -> str:
@@ -187,7 +214,7 @@ class TravelPlanner:
             self.route_after_validation,
             {
                 "finish": END,
-                "retry": "destination",
+                "retry": Node.DESTINATION,
             },
         )
 
