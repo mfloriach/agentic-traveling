@@ -1,7 +1,7 @@
-import json
-
 from pydantic_ai.messages import ModelResponse, TextPart
 from pydantic_ai.usage import RequestUsage
+
+from .schemas import ActivitiesOutput, DestinationOutput, FlightOutput, HotelOutput
 
 
 def mock_hotel(messages, info):
@@ -13,14 +13,12 @@ def mock_hotel(messages, info):
         ),
         parts=[
             TextPart(
-                content=json.dumps(
-                    {
-                        "name": "Hotel Example",
-                        "location": "Near Taipei Airport",
-                        "price_per_night_usd": 100,
-                        "stars": 12,
-                    }
-                )
+                content=HotelOutput(
+                    name="Hotel Example",
+                    location="Near Taipei Airport",
+                    price_per_night_usd=100,
+                    stars=12,
+                ).model_dump_json()
             )
         ],
     )
@@ -35,11 +33,9 @@ def mock_destination(messages, info):
         ),
         parts=[
             TextPart(
-                content=json.dumps(
-                    {
-                        "destination": "Taipei",
-                    }
-                )
+                content=DestinationOutput(
+                    destination="Taipei",
+                ).model_dump_json()
             )
         ],
     )
@@ -54,13 +50,11 @@ def mock_flight(messages, info):
         ),
         parts=[
             TextPart(
-                content=json.dumps(
-                    {
-                        "from_city": "Taipe",
-                        "to_city": "Barcelona",
-                        "arrival_time": "12pm",
-                    }
-                )
+                content=FlightOutput(
+                    from_city="Taipe",
+                    to_city="Barcelona",
+                    arrival_time="12pm",
+                ).model_dump_json()
             )
         ],
     )
@@ -75,11 +69,9 @@ def mock_activities(messages, info):
         ),
         parts=[
             TextPart(
-                content=json.dumps(
-                    {
-                        "top_activities": ["tapioca"],
-                    }
-                )
+                content=ActivitiesOutput(
+                    top_activities=["tapioca"],
+                ).model_dump_json()
             )
         ],
     )

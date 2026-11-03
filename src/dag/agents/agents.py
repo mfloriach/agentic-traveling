@@ -13,8 +13,7 @@ from ..workflows.travel_planner import TravelDeps
 from .hooks import acl
 from .mocks import mock_activities, mock_destination, mock_flight, mock_hotel
 from .schemas import ActivitiesOutput, DestinationOutput, FlightOutput, HotelOutput
-
-# from .tools import get_weather
+from .tools import get_weather
 
 # agent spec YAMLs live in dag/config/, resolved from this file (not cwd)
 _CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
@@ -35,7 +34,7 @@ destination = Agent.from_file(
     deps_type=TravelDeps,
     output_type=DestinationOutput,
     # capabilities=[acl],
-    # tools=[get_weather],
+    tools=[get_weather],
 )
 
 

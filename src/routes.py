@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated, Any
 
-import logfire
+import opentelemetry.trace as trace
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -40,10 +40,15 @@ async def query_rag_system(
     uid = uuid.uuid7()
     token = user_id.set(str(uid))
     try:
-        with logfire.span(
+        with trace.get_tracer(
+            "rag"
+        ).start_as_current_span(
             "travel.request",
-            request_id=request_id.get(),
-            user_id=user_id.get(),
+            attributes={
+                "request_id": request_id.get(),
+                "user_id": user_id.get(),
+                "session_id": user_id.get(),  # TODO: investigate how to get session id from request context
+            },
         ):
             response = await graph.ainvoke(
                 TripState(
@@ -59,8 +64,8 @@ async def query_rag_system(
                 config=RunnableConfig(
                     # happy path = 6 super-steps; +5 per retry round-trip.
                     # 25 (langgraph default) covers retries=2 with slack.
-                    # recursion_limit=3,
-                    max_concurrency=10,
+                    # recursion_limit=3, #TODO: investigate if this is needed for our use case
+                    max_concurrency=10,  # TODO: investigate if this is needed for our use case
                 ),
             )
             return {"query": query.query, "response": response}

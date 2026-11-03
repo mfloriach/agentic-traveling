@@ -3,19 +3,14 @@ from typing import Iterator, cast
 
 # from langchain_core.documents import Document
 from langchain_text_splitters import (  # type: ignore[import-not-found, import-untyped]
-    Language,
     MarkdownHeaderTextSplitter,
     RecursiveCharacterTextSplitter,
 )
+from utils import scrub_pii
 
 from .chunks import Chunk, Document, content_hash, stable_chunk_id
 
 splitters = {
-    "text/x-go": RecursiveCharacterTextSplitter.from_language(
-        language=Language.GO,
-        chunk_size=1000,
-        chunk_overlap=100,
-    ),
     "text/markdown": MarkdownHeaderTextSplitter(
         headers_to_split_on=[
             ("#", "h1"),
@@ -23,7 +18,7 @@ splitters = {
             ("###", "h3"),
         ]
     ),
-    "text/plain": RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50),
+    "text/plain": RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100),
 }
 
 EXTENSION_SPLITTERS = {
@@ -40,18 +35,21 @@ class Splitter:
 
         texts = cast(MarkdownHeaderTextSplitter, splitter).split_text(doc.content)
         for index, text in enumerate(texts):
+            content, detected = scrub_pii(text.page_content)
+
             yield Chunk(
                 chunk_id=stable_chunk_id(doc.id, index),
                 document_id=doc.id,
                 chunk_index=index,
-                content=text.page_content,
+                content=content,
                 source_uri=doc.source_uri,
                 source_type="file",
-                # embedding_model=self.database.get_embedding_model(),
-                content_hash=content_hash(text.page_content),
+                content_hash=content_hash(content),
                 document_hash=doc.document_hash,
                 schema_version=1,
                 created_at=datetime.now().isoformat(),
                 updated_at=datetime.now().isoformat(),
                 tenant_id="default",
+                pii_detected=detected,
+                pii_categories=["EMAIL", "ID_NUMBER"] if detected else None,
             )

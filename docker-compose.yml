@@ -27,5 +27,12 @@ services:
       - "9998:9998"
     restart: unless-stopped
 
+  temporal:
+    image: temporalio/temporal:latest
+    command: server start-dev --ip 0.0.0.0
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+
 volumes:
   qdrant_data:

@@ -12,6 +12,14 @@ class Settings(BaseSettings):
         default="http://localhost:4318/v1/traces",
         validation_alias=AliasChoices("OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_ENDPOINT"),
     )
+    tika_server_endpoint: str = Field(
+        default="http://localhost:9998",
+        validation_alias=AliasChoices("TIKA_SERVER_ENDPOINT"),
+    )
+    qdrant_host: str = Field(
+        default="localhost",
+        validation_alias=AliasChoices("QDRANT_HOST"),
+    )
     port: int = 8010
 
 

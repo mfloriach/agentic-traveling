@@ -5,8 +5,6 @@ from tika import parser  # type: ignore[import-not-found, import-untyped]
 
 from .chunks import Document, content_hash, stable_document_id
 
-TIKA_SERVER = "http://localhost:9998"
-
 
 class TikaResult(TypedDict):
     metadata: dict[str, Any]
@@ -14,12 +12,15 @@ class TikaResult(TypedDict):
 
 
 class ParserTika:
+    def __init__(self, url: str) -> None:
+        self._tika_server = url
+
     def parse(self, file_path: Path) -> Document | None:
         parsed = cast(
             TikaResult,
             parser.from_file(
                 filename=str(file_path),
-                serverEndpoint=TIKA_SERVER,
+                serverEndpoint=self._tika_server,
             ),
         )
 

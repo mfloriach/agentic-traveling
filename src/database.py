@@ -15,31 +15,40 @@ from qdrant_client.models import (  # type: ignore[import-not-found, import-unty
 
 from feed.chunks import Chunk
 
-COLLECTION_NAME = "my_collection"
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 
 class QdrantDatabase:
-    def __init__(self, collection_name: str = COLLECTION_NAME, batch_size: int = 100):
+    def __init__(self, url: str, collection_name: str, batch_size: int = 100):
         self.collection_name = collection_name
         self.batch_size = batch_size
-        self.client = QdrantClient(url="http://localhost:6333")
+        self.client = QdrantClient(url=url)
 
-        if not self.client.collection_exists(collection_name=collection_name):
-            self.client.create_collection(
-                collection_name=collection_name,
-                vectors_config={
-                    "dense": VectorParams(
-                        size=384,
-                        distance=Distance.COSINE,
-                    )
-                },
-                sparse_vectors_config={
-                    "bm25": SparseVectorParams(
-                        modifier=Modifier.IDF,  # Computes IDF score server-side
-                    )
-                },
-            )
+        if self.client.collection_exists(self.collection_name):
+            return
+
+        self.client.create_collection(
+            collection_name=collection_name,
+            vectors_config={
+                "dense": VectorParams(
+                    size=384,
+                    distance=Distance.COSINE,
+                )
+            },
+            sparse_vectors_config={
+                "bm25": SparseVectorParams(
+                    modifier=Modifier.IDF,  # Computes IDF score server-side
+                )
+            },
+        )
+
+        # # Create indexes for fields used by retrieval filters.
+        # for field in ("tenant_id", "document_id", "version"):
+        #     client.create_payload_index(
+        #         collection_name=COLLECTION,
+        #         field_name=field,
+        #         field_schema=models.PayloadSchemaType.KEYWORD,
+        #     )
 
     def get_embedding_model(self) -> str:
         return embeddings.model_name
@@ -84,4 +93,6 @@ class QdrantDatabase:
             collection_name=self.collection_name,
             points=points,
             wait=True,
+            parallel=1,
+            max_retries=3,
         )
