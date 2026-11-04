@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Iterator, cast
 
-# from langchain_core.documents import Document
 from langchain_text_splitters import (  # type: ignore[import-not-found, import-untyped]
     MarkdownHeaderTextSplitter,
     RecursiveCharacterTextSplitter,

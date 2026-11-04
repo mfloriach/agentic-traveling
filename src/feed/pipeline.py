@@ -6,9 +6,7 @@ from .chunks import Chunk, Document
 
 
 class Database(Protocol):
-    def get_embedding_model(self) -> str: ...
-
-    def insert(self, chunks: Iterable[Chunk]) -> None: ...
+    def insert(self, chunks: Iterable[Chunk], batch_size: int) -> None: ...
 
 
 class Loader(Protocol):
@@ -51,10 +49,14 @@ class Pipeline:
         for doc in documents:
             yield from self.splitter.split(doc)
 
+    def dlp(self, chunks: Iterable[Chunk]) -> Iterator[Chunk]:
+        for chunk in chunks:
+            yield chunk
+
     def run(self, path: Path) -> None:
         paths = self.load_data(path)
         documents = self.extract_data(paths)
         chunks = self.split_data(documents)
-        self.database.insert(chunks)
+        self.database.insert(chunks, batch_size=100)
 
         print("finished")

@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, List
 
 from langchain_community.embeddings import (
     HuggingFaceEmbeddings,  # type: ignore[import-not-found, import-untyped]
@@ -7,8 +7,12 @@ from qdrant_client import QdrantClient  # type: ignore[import-not-found, import-
 from qdrant_client.models import (  # type: ignore[import-not-found, import-untyped]
     Distance,
     Document,
+    Fusion,
+    FusionQuery,
     Modifier,
     PointStruct,
+    Prefetch,
+    ScoredPoint,
     SparseVectorParams,
     VectorParams,
 )
@@ -19,9 +23,8 @@ embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-
 
 
 class QdrantDatabase:
-    def __init__(self, url: str, collection_name: str, batch_size: int = 100):
+    def __init__(self, url: str, collection_name: str):
         self.collection_name = collection_name
-        self.batch_size = batch_size
         self.client = QdrantClient(url=url)
 
         if self.client.collection_exists(self.collection_name):
@@ -37,7 +40,7 @@ class QdrantDatabase:
             },
             sparse_vectors_config={
                 "bm25": SparseVectorParams(
-                    modifier=Modifier.IDF,  # Computes IDF score server-side
+                    modifier=Modifier.IDF,
                 )
             },
         )
@@ -50,16 +53,16 @@ class QdrantDatabase:
         #         field_schema=models.PayloadSchemaType.KEYWORD,
         #     )
 
-    def get_embedding_model(self) -> str:
+    def _get_embedding_model(self) -> str:
         return embeddings.model_name
 
-    def insert(self, chunks: Iterable[Chunk]) -> None:
+    def insert(self, chunks: Iterable[Chunk], batch_size: int = 100) -> None:
         batch: list[Chunk] = []
 
         for chunk in chunks:
             batch.append(chunk)
 
-            if len(batch) >= self.batch_size:
+            if len(batch) >= batch_size:
                 self._insert(batch)
                 batch.clear()
 
@@ -84,7 +87,7 @@ class QdrantDatabase:
                     },
                     payload={
                         **chunk.__dict__,
-                        "embedding_model": self.get_embedding_model(),
+                        "embedding_model": self._get_embedding_model(),
                     },
                 )
             )
@@ -96,3 +99,32 @@ class QdrantDatabase:
             parallel=1,
             max_retries=3,
         )
+
+    def search(self, query: str, limit: int = 5) -> List[ScoredPoint]:
+        dense_vector = embeddings.embed_query(query)
+
+        results = self.client.query_points(
+            collection_name=self.collection_name,
+            prefetch=[
+                Prefetch(
+                    query=dense_vector,
+                    using="dense",
+                    limit=50,
+                ),
+                Prefetch(
+                    query=Document(
+                        text=query,
+                        model="Qdrant/bm25",
+                    ),
+                    using="bm25",
+                    limit=50,
+                ),
+            ],
+            query=FusionQuery(
+                fusion=Fusion.RRF,
+            ),
+            limit=limit,
+            with_payload=True,
+        )
+
+        return results.points

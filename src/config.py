@@ -20,6 +20,10 @@ class Settings(BaseSettings):
         default="localhost",
         validation_alias=AliasChoices("QDRANT_HOST"),
     )
+    collection_name: str = Field(
+        default="my_collection",
+        validation_alias=AliasChoices("COLLECTION_NAME"),
+    )
     port: int = 8010
 
 

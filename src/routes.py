@@ -7,9 +7,9 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from dag.errors import ForbiddenError
-from dag.workflows.travel_planner import Triage, TripState, ValidationResult
 from logger import logger, request_id, user_id
-from main import get_graph
+from main import get_router, router
+from src.dag.workflows.router import QueryState
 
 router = APIRouter()
 app = FastAPI()
@@ -35,7 +35,7 @@ class Search(BaseModel):
 @router.get("/query")
 async def query_rag_system(
     query: Annotated[Search, Query()],
-    graph: Annotated[Any, Depends(get_graph)],
+    router: Annotated[Any, Depends(get_router)],
 ) -> dict[str, Any]:
     uid = uuid.uuid7()
     token = user_id.set(str(uid))
@@ -50,16 +50,10 @@ async def query_rag_system(
                 "session_id": user_id.get(),  # TODO: investigate how to get session id from request context
             },
         ):
-            response = await graph.ainvoke(
-                TripState(
+            response = await router.ainvoke(
+                QueryState(
                     user_id=uid,
-                    user_input=query.query,
-                    origin_city="Barcelona",
-                    triage=Triage(
-                        category="general", priority="normal", reason="initial request"
-                    ),
-                    validation=ValidationResult(passed=False),
-                    retry_count=0,
+                    query=query.query,
                 ),
                 config=RunnableConfig(
                     # happy path = 6 super-steps; +5 per retry round-trip.

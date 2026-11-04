@@ -6,17 +6,14 @@ from feed.parsers import ParserTika
 from feed.pipeline import Pipeline
 from feed.splitter import Splitter
 
-from .config import Settings
-
-COLLECTION_NAME = "my_collection"
-
-settings = Settings()
+from .config import settings
 
 
 def main() -> None:
     pipeline = Pipeline(
         database=QdrantDatabase(
-            url=settings.qdrant_host, collection_name=COLLECTION_NAME, batch_size=100
+            url=settings.qdrant_host,
+            collection_name=settings.collection_name,
         ),
         parser=ParserTika(url=settings.tika_server_endpoint),
         splitter=Splitter(),
