@@ -1,11 +1,10 @@
+import logging
 import time
 from functools import wraps
-import logging
-
 
 logger = logging.getLogger("travel_planner")
-    
-   
+
+
 def log_agent(func):
     @wraps(func)
     async def wrapper(self, *args, **kwargs):
@@ -25,9 +24,7 @@ def log_agent(func):
                 "agent.completed",
                 extra={
                     "agent_name": agent_name,
-                    "duration_ms": round(
-                        (time.perf_counter() - start) * 1000
-                    ),
+                    "duration_ms": round((time.perf_counter() - start) * 1000),
                     "requests": usage.requests,
                     "input_tokens": usage.input_tokens,
                     "output_tokens": usage.output_tokens,
@@ -42,9 +39,7 @@ def log_agent(func):
                 "agent.failed",
                 extra={
                     "agent_name": agent_name,
-                    "duration_ms": round(
-                        (time.perf_counter() - start) * 1000
-                    ),
+                    "duration_ms": round((time.perf_counter() - start) * 1000),
                 },
             )
             raise

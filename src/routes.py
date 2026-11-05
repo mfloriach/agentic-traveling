@@ -38,14 +38,13 @@ async def query_rag_system(
     uid = uuid.uuid7()
     token = user_id.set(str(uid))
     try:
-        with trace.get_tracer(
-            "rag"
-        ).start_as_current_span(
+        with trace.get_tracer("rag").start_as_current_span(
             "travel.request",
             attributes={
                 "request_id": request_id.get(),
                 "user_id": user_id.get(),
-                "session_id": user_id.get(),  # TODO: investigate how to get session id from request context
+                # TODO: investigate how to get session id from request context
+                "session_id": user_id.get(),
             },
         ):
             response = await router.ainvoke(
@@ -56,18 +55,20 @@ async def query_rag_system(
                 config=RunnableConfig(
                     # happy path = 6 super-steps; +5 per retry round-trip.
                     # 25 (langgraph default) covers retries=2 with slack.
-                    # recursion_limit=3, #TODO: investigate if this is needed for our use case
-                    max_concurrency=10,  # TODO: investigate if this is needed for our use case
+                    # TODO: investigate if this is needed for our use case
+                    # recursion_limit=3,
+                    # TODO: investigate if this is needed for our use case
+                    max_concurrency=10,
                 ),
             )
             return {"query": query.query, "response": response}
-    except ForbiddenError:
+    except ForbiddenError as e:
         raise HTTPException(
             status_code=403,
             detail="Forbidden",
-        )
+        ) from e
     except Exception as e:
         logger.exception("Request failed")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         user_id.reset(token)

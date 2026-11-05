@@ -1,11 +1,13 @@
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Iterator, cast
+from typing import cast
 
 from langchain_text_splitters import (  # type: ignore[import-not-found, import-untyped]
     MarkdownHeaderTextSplitter,
     RecursiveCharacterTextSplitter,
 )
-from utils import scrub_pii
+
+from src.feed.utils import scrub_pii
 
 from .chunks import Chunk, Document, content_hash, stable_chunk_id
 

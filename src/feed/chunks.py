@@ -1,7 +1,6 @@
 import hashlib
 import uuid
 from dataclasses import dataclass
-from typing import Optional
 
 DOCUMENT_NAMESPACE = uuid.UUID("b7c7d8b2-47c1-4e8a-aad4-4e85b3c7f921")
 
@@ -42,7 +41,7 @@ class Chunk:
     pii_detected: bool
     version: int = 1
     pii_scrubbing_version: int = 1
-    pii_categories: Optional[list[str]] = None
+    pii_categories: list[str] | None = None
     # document_id
     # source_system
     # document_version

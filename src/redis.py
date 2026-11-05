@@ -3,6 +3,7 @@ import uuid
 import numpy as np
 import valkey
 from langchain_huggingface import HuggingFaceEmbeddings
+from valkey.client import Pipeline
 from valkey.commands.search.field import TagField, VectorField
 from valkey.commands.search.indexDefinition import IndexDefinition, IndexType
 from valkey.commands.search.query import Query
@@ -82,6 +83,9 @@ class SemanticCacheValkey:
             search_query,
             {"vec": embedding},
         )
+
+        if isinstance(results, Pipeline):
+            return None
 
         if not results.docs:
             return None

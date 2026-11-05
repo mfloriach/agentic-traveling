@@ -22,11 +22,11 @@ async def get_weather(
     }
 
     try:
-        response = ctx.deps.wheather.get("/v1/forecast", params=params)
+        response = await ctx.deps.wheather.get("/v1/forecast", params=params)
     except pybreaker.CircuitBreakerError as e:
         raise e  # TODO: concretee aerror
     finally:
-        ctx.deps.wheather.close()
+        await ctx.deps.wheather.close()
 
     data = response["current"]
     return (

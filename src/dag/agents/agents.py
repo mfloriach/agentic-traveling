@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 from pydantic_ai import Agent
 from pydantic_ai.models.function import FunctionModel
@@ -11,7 +10,7 @@ from .tools import get_weather
 
 
 def build_agent_destination(
-    file_path: Path, mock_model: Optional[FunctionModel] = None
+    file_path: Path, mock_model: FunctionModel | None = None
 ) -> Agent[TravelDeps, DestinationOutput]:
     model = mock_model
 
@@ -35,7 +34,7 @@ def build_agent_destination(
 
 
 def build_agent_flight(
-    file_path: Path, mock_model: Optional[FunctionModel] = None
+    file_path: Path, mock_model: FunctionModel | None = None
 ) -> Agent[TravelDeps, FlightOutput]:
     model = mock_model
 
@@ -58,7 +57,7 @@ def build_agent_flight(
 
 
 def build_agent_hotel(
-    file_path: Path, mock_model: Optional[FunctionModel] = None
+    file_path: Path, mock_model: FunctionModel | None = None
 ) -> Agent[TravelDeps, HotelOutput]:
     model = mock_model
 
@@ -81,7 +80,7 @@ def build_agent_hotel(
 
 
 def build_agent_activities(
-    file_path: Path, mock_model: Optional[FunctionModel] = None
+    file_path: Path, mock_model: FunctionModel | None = None
 ) -> Agent[TravelDeps, ActivitiesOutput]:
     model = mock_model
 

@@ -18,7 +18,7 @@ class ParserTika:
     def parse(self, file_path: Path) -> Document | None:
         parsed = cast(
             TikaResult,
-            parser.from_file(
+            parser.from_file(  # pyright: ignore[reportInvalidCast]
                 filename=str(file_path),
                 serverEndpoint=self._tika_server,
             ),

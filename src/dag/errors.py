@@ -1,4 +1,1 @@
-
-
-class ForbiddenError(Exception):
-    pass
+class ForbiddenError(Exception): ...

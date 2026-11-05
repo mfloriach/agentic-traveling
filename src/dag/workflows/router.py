@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, List, Protocol, TypedDict
+from typing import Any, Protocol, TypedDict
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
@@ -19,7 +19,7 @@ class Node(StrEnum):
 
 
 class DatabaseRetrieve(Protocol):
-    def search(self, query: str, limit: int = 5) -> List[ScoredPoint]: ...
+    def search(self, query: str, limit: int = 5) -> list[ScoredPoint]: ...
 
 
 class SemanticCache(Protocol):
@@ -70,6 +70,7 @@ class Router:
             return {"action": "search"}
 
         points = self.deps.database.search(state["query"], limit=5)
+        print(f"Found {len(points)} points for query: {state['query']}")
 
         self.deps.cache.set(
             query=state["query"],
@@ -105,8 +106,10 @@ class Router:
             config=RunnableConfig(
                 # happy path = 6 super-steps; +5 per retry round-trip.
                 # 25 (langgraph default) covers retries=2 with slack.
-                # recursion_limit=3, #TODO: investigate if this is needed for our use case
-                max_concurrency=10,  # TODO: investigate if this is needed for our use case
+                # TODO: investigate if this is needed for our use case
+                # recursion_limit=3,
+                # TODO: investigate if this is needed for our use case
+                max_concurrency=10,
             ),
         )
         return {"query": state["query"], "response": response}

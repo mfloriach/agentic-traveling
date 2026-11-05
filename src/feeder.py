@@ -2,11 +2,11 @@ from pathlib import Path
 
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from database import QdrantDatabase
 from feed.loader import LoaderLocal
 from feed.parsers import ParserTika
 from feed.pipeline import Pipeline
 from feed.splitter import Splitter
+from src.database import QdrantDatabase
 
 from .config import settings
 

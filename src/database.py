@@ -1,4 +1,4 @@
-from typing import Iterable, List
+from collections.abc import Iterable
 
 from langchain_huggingface import HuggingFaceEmbeddings
 from qdrant_client import QdrantClient  # type: ignore[import-not-found, import-untyped]
@@ -73,7 +73,7 @@ class QdrantDatabase:
         vectors = self.embeddings.embed_documents(texts)
 
         points = []
-        for chunk, vector in zip(batch, vectors):
+        for chunk, vector in zip(batch, vectors, strict=False):
             points.append(
                 PointStruct(
                     id=chunk.chunk_id,
@@ -99,7 +99,7 @@ class QdrantDatabase:
             max_retries=3,
         )
 
-    def search(self, query: str, limit: int = 5) -> List[ScoredPoint]:
+    def search(self, query: str, limit: int = 5) -> list[ScoredPoint]:
         dense_vector = self.embeddings.embed_query(query)
 
         results = self.client.query_points(

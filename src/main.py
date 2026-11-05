@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import cast
 
 from dotenv import load_dotenv
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -20,7 +19,7 @@ from src.dag.agents.mocks import (
 )
 from src.dag.utils.api_client import APIClient
 from src.dag.workflows.router import Router, RouterDeps
-from src.dag.workflows.travel_planner import API, Agents, TravelDeps, TravelPlanner
+from src.dag.workflows.travel_planner import Agents, TravelDeps, TravelPlanner
 from src.database import QdrantDatabase
 from src.redis import SemanticCacheValkey
 
@@ -30,7 +29,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 planner = TravelPlanner(
     deps=TravelDeps(
         retries=2,
-        wheather=cast("API", APIClient("https://api.open-meteo.com")),
+        wheather=APIClient("https://api.open-meteo.com"),
     ),
     agents=Agents(
         destination=build_agent_destination(

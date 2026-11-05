@@ -50,8 +50,7 @@ class Pipeline:
             yield from self.splitter.split(doc)
 
     def dlp(self, chunks: Iterable[Chunk]) -> Iterator[Chunk]:
-        for chunk in chunks:
-            yield chunk
+        yield from chunks
 
     def run(self, path: Path) -> None:
         paths = self.load_data(path)

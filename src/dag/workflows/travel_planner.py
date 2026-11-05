@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Literal, NotRequired, Protocol, TypedDict
+from typing import Any, Literal, NotRequired, Protocol, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
@@ -50,8 +50,8 @@ class ValidationUpdate(TypedDict):
 
 
 class API(Protocol):
-    def get(self, path: str, **kwargs) -> dict: ...
-    def close(self) -> None: ...
+    async def get(self, path: str, **kwargs) -> dict[str, Any]: ...
+    async def close(self) -> None: ...
 
 
 class Triage(BaseModel):
@@ -124,10 +124,11 @@ class TravelPlanner:
         if "destination" not in state:
             raise ValueError("Destination is required before flight")
 
-        prompt = f"Plan a flight from {state['origin_city']} to {state['destination'].destination}"
+        prompt = f"Plan a flight from {state['origin_city']} to {state['destination']}"
         result = await self.agents.flight.run(prompt, deps=self.deps)
         logger.info(
-            f"✈️ Flight: from {result.output.from_city} → {result.output.to_city}, arriving at {result.output.arrival_time}"
+            f"✈️ Flight: from {result.output.from_city} → {result.output.to_city}"
+            f"arriving at {result.output.arrival_time}"
         )
         return {"flight": result.output}
 
@@ -137,7 +138,7 @@ class TravelPlanner:
             raise ValueError("Destination is required before hotel recommendation")
 
         prompt = (
-            f"Recommend a hotel in {state['destination'].destination} for a traveler arriving. "
+            f"Recommend a hotel in {state['destination'].destination}. "
             f"Prefer locations near the airport or city center."
         )
         result = await self.agents.hotel.run(prompt, deps=self.deps)
