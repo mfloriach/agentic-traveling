@@ -2,18 +2,16 @@ import uuid
 from typing import Annotated, Any
 
 import opentelemetry.trace as trace
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from dag.errors import ForbiddenError
-from logger import logger, request_id, user_id
-from main import get_router, router
+from src.dag.errors import ForbiddenError
 from src.dag.workflows.router import QueryState
+from src.logger import logger, request_id, user_id
+from src.main import get_router
 
-router = APIRouter()
 app = FastAPI()
-app.include_router(router)
 
 
 @app.middleware("http")
@@ -32,7 +30,7 @@ class Search(BaseModel):
     query: str = Field(min_length=3, max_length=3000)
 
 
-@router.get("/query")
+@app.get("/query")
 async def query_rag_system(
     query: Annotated[Search, Query()],
     router: Annotated[Any, Depends(get_router)],

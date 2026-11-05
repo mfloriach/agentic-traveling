@@ -1,22 +1,26 @@
-import sys
 from pathlib import Path
 from typing import cast
 
 from dotenv import load_dotenv
 from pydantic_ai.models.function import FunctionModel
 
-from config import settings
-from dag.agents.agents import (
+from src.config import settings
+from src.dag.agents.agents import (
     build_agent_activities,
     build_agent_destination,
     build_agent_flight,
     build_agent_hotel,
 )
-from dag.agents.mocks import mock_activities, mock_destination, mock_flight, mock_hotel
-from dag.utils.api_client import APIClient
-from dag.workflows.router import Router, RouterDeps
-from dag.workflows.travel_planner import API, Agents, TravelDeps, TravelPlanner
-from database import QdrantDatabase
+from src.dag.agents.mocks import (
+    mock_activities,
+    mock_destination,
+    mock_flight,
+    mock_hotel,
+)
+from src.dag.utils.api_client import APIClient
+from src.dag.workflows.router import Router, RouterDeps
+from src.dag.workflows.travel_planner import API, Agents, TravelDeps, TravelPlanner
+from src.database import QdrantDatabase
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
@@ -67,13 +71,13 @@ def get_router():
     return router
 
 
-def main() -> None:
-    # repo root on sys.path so `src.routes` resolves when run as a script
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    import uvicorn
+# def main() -> None:
+#     # repo root on sys.path so `src.routes` resolves when run as a script
+#     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+#     import uvicorn
 
-    uvicorn.run("routes:app", host="127.0.0.1", port=settings.port)
+#     uvicorn.run("routes:app", host="127.0.0.1", port=settings.port)
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

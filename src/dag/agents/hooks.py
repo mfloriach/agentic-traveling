@@ -1,7 +1,7 @@
 from pydantic_ai import RunContext
 from pydantic_ai.capabilities import Hooks
 
-from logger import logger
+from src.logger import logger
 
 acl = Hooks()
 

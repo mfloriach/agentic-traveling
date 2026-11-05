@@ -11,7 +11,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pydantic_ai import Agent, InstrumentationSettings
 
-from config import settings
+from src.config import settings
 
 # Shared global provider: Langfuse adds its own span processor (auth via
 # LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY env vars, disabled when absent),

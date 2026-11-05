@@ -17,7 +17,7 @@ from qdrant_client.models import (  # type: ignore[import-not-found, import-unty
     VectorParams,
 )
 
-from feed.chunks import Chunk
+from src.feed.chunks import Chunk
 
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 

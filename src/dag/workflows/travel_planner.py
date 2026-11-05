@@ -7,8 +7,8 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from logger import logger
-from tracing import traced_node
+from src.logger import logger
+from src.tracing import traced_node
 
 from ..agents.schemas import (
     ActivitiesOutput,
@@ -124,9 +124,7 @@ class TravelPlanner:
         if "destination" not in state:
             raise ValueError("Destination is required before flight")
 
-        prompt = (
-            f"Plan a flight from {state['origin_city']} to {state['destination'].destination}"
-        )
+        prompt = f"Plan a flight from {state['origin_city']} to {state['destination'].destination}"
         result = await self.agents.flight.run(prompt, deps=self.deps)
         logger.info(
             f"✈️ Flight: from {result.output.from_city} → {result.output.to_city}, arriving at {result.output.arrival_time}"

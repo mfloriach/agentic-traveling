@@ -11,17 +11,7 @@ It is meant to be read alongside the code: every subsystem below maps 1:1 to a f
 
 ## Architecture
 
-```
-                        INGESTION (src/feeder.py)
-samples/ ──► LoaderLocal ──► ParserTika ──► Splitter ──► QdrantDatabase
-             (file walk)     (text+meta    (md/code/    (dense 384d + server-side
-                              extraction)   plain)       BM25 hybrid collection)
-
-                        SERVING (src/main.py → src/routes.py)
-HTTP /query ──► Router graph ──► TravelPlanner graph ──► response
-                src/dag/          src/dag/workflows/
-                workflows/router.py  travel_planner.py
-```
+![architecture](./docs/rag-stack.png)
 
 ## The RAG pipeline, step by step
 
@@ -110,12 +100,13 @@ Each agent node is wrapped by `traced_node` (`src/tracing.py`) so LangGraph node
 ## Running it
 
 ```bash
-docker compose up -d          # Qdrant, Tika, Jaeger, Temporal
-uv run python src/feeder.py   # ingest samples/ into Qdrant
-uv run python src/main.py     # FastAPI on :8010
+docker compose up -d             # Qdrant, Tika, Jaeger, Temporal + app (:8010, live reload)
+docker compose run --rm app sh -c "PYTHONPATH=/app:/app/src uv run python src/feeder.py"  # ingest samples/
 
 curl "http://127.0.0.1:8010/query?query=where%20should%20I%20go%20next%20weekend"
 ```
+
+The `app` service mounts the repo into the container and runs uvicorn with `--reload` — edits to `src/` restart the worker automatically. Its env vars point the telemetry and data stores at the compose services (Jaeger, Qdrant, Tika). Without Compose, run the app directly: `uv run python src/main.py`.
 
 For LLM tracing, set `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL` in `.env`; without them tracing silently degrades to the local Jaeger collector. `MOCK`-behaviour is wired in `main.py`; agents currently ship mocked by default so the stack runs with zero external model accounts.
 
