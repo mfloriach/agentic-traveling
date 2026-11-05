@@ -91,3 +91,6 @@ source = ["src"]
 
 [tool.coverage.report]
 show_missing = true
+
+[tool.basedpyright]
+level = "error"
