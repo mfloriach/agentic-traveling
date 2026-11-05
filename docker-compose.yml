@@ -34,34 +34,78 @@ services:
       - "7233:7233"
       - "8233:8233"
 
-  # FastAPI app with live reload: edits to src/ restart the worker on the fly.
-  app:
-    image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
-    container_name: app
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
     restart: unless-stopped
-    working_dir: /app
-    command: sh -c "uv sync --frozen --quiet && uv run uvicorn src.routes:app --host 0.0.0.0 --port 8010 --reload"
-    env_file:
-      - .env
-    environment:
-      PYTHONPATH: /app:/app/src # routes/main live in src/, dag imported as src.dag
-      HF_HOME: /app/.hf-cache # cache embedding model across reloads & restarts
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
-      QDRANT_HOST: http://qdrant:6333
-      TIKA_SERVER_ENDPOINT: http://tika:9998
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # app runs outside this network
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
     volumes:
-      - .:/app
-      - app_venv:/app/.venv # shadow the host .venv (macOS binaries, wrong platform)
-      - app_hf:/app/.hf-cache
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     ports:
-      - "8010:8010"
+      - "9090:9090"
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    volumes:
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro # docker_sd: tails container logs
+      - ./logs:/logs:ro # tail this file for the app running on the host
+      - promtail_positions:/positions
     depends_on:
-      - qdrant
-      - tika
-      - jaeger
-      - temporal
+      - loki
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_LOG_LEVEL: debug
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+
+  valkey:
+    image: valkey/valkey-bundle:9.1.4
+    container_name: valkey
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: valkey-server --requirepass your_strong_password --appendonly yes
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-a", "your_strong_password", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 
 volumes:
   qdrant_data:
-  app_venv:
-  app_hf:
+  promtail_positions:
+  valkey_data:
+  loki_data:
+  prometheus_data:
+  grafana_data:

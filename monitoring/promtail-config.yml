@@ -1,0 +1,32 @@
+server:
+  http_listen_port: 9080
+
+positions:
+  filename: /positions/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # strip the leading "/" from the docker-provided container name
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: "container"
+      # compose service name as a label for easy log filtering
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: "service"
+      - source_labels: ["__meta_docker_container_log_stream"]
+        target_label: "stream"
+
+  # the app running on the host (logs/app.log); catches compose app too
+  - job_name: rag
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: rag
+          __path__: /logs/*.log

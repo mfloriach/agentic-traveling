@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from langchain_huggingface import HuggingFaceEmbeddings
+
 from database import QdrantDatabase
 from feed.loader import LoaderLocal
 from feed.parsers import ParserTika
@@ -14,6 +16,9 @@ def main() -> None:
         database=QdrantDatabase(
             url=settings.qdrant_host,
             collection_name=settings.collection_name,
+            embeddings=HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2"
+            ),
         ),
         parser=ParserTika(url=settings.tika_server_endpoint),
         splitter=Splitter(),

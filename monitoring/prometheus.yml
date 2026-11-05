@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # qdrant exposes /metrics on the REST port
+  - job_name: qdrant
+    static_configs:
+      - targets: ["qdrant:6333"]
+
+  # app's /metrics (prometheus-client, port 9091). Works whether the app runs
+  # locally or in compose — both publish 9091 on the host.
+  - job_name: app
+    static_configs:
+      - targets: ["host.docker.internal:9091"]

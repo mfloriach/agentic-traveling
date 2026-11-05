@@ -21,6 +21,7 @@ dependencies = [
     "langfuse>=5.1.0",
     "langgraph>=1.2.16",
     "openai>=3.37.0",
+    "prometheus-client>=0.26.0",
     "pybreaker>=1.4.1",
     "pydantic>=2.14.1",
     "pydantic-ai>=2.61.0",
@@ -32,6 +33,7 @@ dependencies = [
     "tenacity>=9.1.4",
     "tika>=3.3.2",
     "uvicorn[standard]>=0.54.0",
+    "valkey>=6.2.0",
 ]
 
 [project.scripts]
@@ -49,5 +51,43 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "bandit>=1.9.4",
+    "basedpyright>=1.40.2",
+    "pip-audit>=2.10.1",
     "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.1.post1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.3",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle
+    "F",      # Pyflakes
+    "I",      # Import sorting
+    "UP",     # Pyupgrade
+    "B",      # Bugbear
+    "SIM",    # Simplification
+    "S",      # Security rules
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers --strict-config"
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80

@@ -1,8 +1,6 @@
 from typing import Iterable, List
 
-from langchain_community.embeddings import (
-    HuggingFaceEmbeddings,  # type: ignore[import-not-found, import-untyped]
-)
+from langchain_huggingface import HuggingFaceEmbeddings
 from qdrant_client import QdrantClient  # type: ignore[import-not-found, import-untyped]
 from qdrant_client.models import (  # type: ignore[import-not-found, import-untyped]
     Distance,
@@ -19,13 +17,14 @@ from qdrant_client.models import (  # type: ignore[import-not-found, import-unty
 
 from src.feed.chunks import Chunk
 
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
 
 class QdrantDatabase:
-    def __init__(self, url: str, collection_name: str):
+    def __init__(
+        self, url: str, collection_name: str, embeddings: HuggingFaceEmbeddings
+    ):
         self.collection_name = collection_name
         self.client = QdrantClient(url=url)
+        self.embeddings = embeddings
 
         if self.client.collection_exists(self.collection_name):
             return
@@ -54,7 +53,7 @@ class QdrantDatabase:
         #     )
 
     def _get_embedding_model(self) -> str:
-        return embeddings.model_name
+        return self.embeddings.model_name
 
     def insert(self, chunks: Iterable[Chunk], batch_size: int = 100) -> None:
         batch: list[Chunk] = []
@@ -71,7 +70,7 @@ class QdrantDatabase:
 
     def _insert(self, batch: list[Chunk]) -> None:
         texts = [chunk.content for chunk in batch]
-        vectors = embeddings.embed_documents(texts)
+        vectors = self.embeddings.embed_documents(texts)
 
         points = []
         for chunk, vector in zip(batch, vectors):
@@ -101,7 +100,7 @@ class QdrantDatabase:
         )
 
     def search(self, query: str, limit: int = 5) -> List[ScoredPoint]:
-        dense_vector = embeddings.embed_query(query)
+        dense_vector = self.embeddings.embed_query(query)
 
         results = self.client.query_points(
             collection_name=self.collection_name,

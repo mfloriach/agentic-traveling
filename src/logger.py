@@ -1,6 +1,7 @@
 import contextvars
 import json
 import logging
+import os
 import sys
 
 # correlation id for the current request; "-" outside requests
@@ -75,8 +76,15 @@ handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(JsonFormatter())
 handler.addFilter(RequestIdFilter())
 
+# tailed by promtail (mounted at /logs) so locally-running logs reach Loki
+os.makedirs("logs", exist_ok=True)
+file_handler = logging.FileHandler("logs/app.log")
+file_handler.setFormatter(JsonFormatter())
+file_handler.addFilter(RequestIdFilter())
+
 root = logging.getLogger()
 root.addHandler(handler)
+root.addHandler(file_handler)
 root.setLevel(logging.INFO)
 
 

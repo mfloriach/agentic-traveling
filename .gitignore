@@ -9,3 +9,9 @@ wheels/
 # Virtual environments
 .venv
 .env
+
+# App log tail (shipped to Loki by promtail)
+logs/
+
+# Loki data dir if ever run bare
+loki_data/

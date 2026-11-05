@@ -22,10 +22,29 @@ class DatabaseRetrieve(Protocol):
     def search(self, query: str, limit: int = 5) -> List[ScoredPoint]: ...
 
 
+class SemanticCache(Protocol):
+    def get(
+        self,
+        query: str,
+        tenant_id: str,
+        threshold: float = 0.95,
+        limit: int = 5,
+    ) -> str | None: ...
+
+    def set(
+        self,
+        query: str,
+        answer: str,
+        tenant_id: str,
+        ttl: int = 3600,
+    ) -> None: ...
+
+
 @dataclass
 class RouterDeps:
     graph: CompiledStateGraph[TripState, None, TripState, TripState]
     database: DatabaseRetrieve
+    cache: SemanticCache
 
 
 class QueryState(TypedDict):
@@ -41,10 +60,22 @@ class Router:
 
     @traced_node(Node.ROUTER)
     def router(self, state: QueryState):
+        answer = self.deps.cache.get(
+            query=state["query"],
+            tenant_id="tenant-123",
+            threshold=0.95,
+        )
+
+        if answer:
+            return {"action": "search"}
+
         points = self.deps.database.search(state["query"], limit=5)
-        print(f"Router: Found {len(points)} points for query '{state['query']}'")
-        for p in points:
-            print(f" - {p.score}")
+
+        self.deps.cache.set(
+            query=state["query"],
+            answer="Go to account settings and select reset password.",
+            tenant_id="tenant-123",
+        )
 
         # The old ">= 5 points → respond" shortcut was unreachable: a response
         # only exists after `search` runs, so a direct-entry respond always

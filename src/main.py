@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import cast
 
 from dotenv import load_dotenv
+from langchain_huggingface import HuggingFaceEmbeddings
 from pydantic_ai.models.function import FunctionModel
 
 from src.config import settings
@@ -21,6 +22,7 @@ from src.dag.utils.api_client import APIClient
 from src.dag.workflows.router import Router, RouterDeps
 from src.dag.workflows.travel_planner import API, Agents, TravelDeps, TravelPlanner
 from src.database import QdrantDatabase
+from src.redis import SemanticCacheValkey
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
@@ -50,13 +52,17 @@ planner = TravelPlanner(
     ),
 ).build()
 
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
 router = Router(
     deps=RouterDeps(
         graph=planner,
         database=QdrantDatabase(
             url=settings.qdrant_host,
             collection_name=settings.collection_name,
+            embeddings=embeddings,
         ),
+        cache=SemanticCacheValkey(embeddings=embeddings),
     )
 ).build()
 
@@ -69,15 +75,3 @@ def get_graph():
 def get_router():
     """FastAPI dependency: inject the compiled LangGraph into the routes."""
     return router
-
-
-# def main() -> None:
-#     # repo root on sys.path so `src.routes` resolves when run as a script
-#     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-#     import uvicorn
-
-#     uvicorn.run("routes:app", host="127.0.0.1", port=settings.port)
-
-
-# if __name__ == "__main__":
-#     main()
