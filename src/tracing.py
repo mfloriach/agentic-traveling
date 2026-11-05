@@ -1,4 +1,5 @@
 # tracing.py
+import inspect
 from functools import wraps
 from typing import Any
 
@@ -33,15 +34,29 @@ tracer = trace.get_tracer("rag")
 
 def traced_node(name: str):
     def decorator(fn):
+        # keep sync nodes sync: awaiting a plain dict fails ('dict' object
+        # can't be awaited), so wrap each kind natively
+        if inspect.iscoroutinefunction(fn):
+
+            @wraps(fn)
+            async def wrapper(self, state: dict[str, Any], *args, **kwargs):
+                with tracer.start_as_current_span(
+                    "graph.node." + name,
+                    attributes={"node": name},
+                ):
+                    return await fn(self, state)
+
+            return wrapper
+
         @wraps(fn)
-        async def wrapper(self, state: dict[str, Any], *args, **kwargs):
+        def sync_wrapper(self, state: dict[str, Any], *args, **kwargs):
             with tracer.start_as_current_span(
                 "graph.node." + name,
                 attributes={"node": name},
             ):
-                return await fn(self, state)
+                return fn(self, state)
 
-        return wrapper
+        return sync_wrapper
 
     return decorator
 

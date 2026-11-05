@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Any, List, Protocol, TypedDict
 
 from langchain_core.runnables import RunnableConfig
-from langgraph.graph import START, StateGraph
+from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph, NotRequired
 from qdrant_client.models import ScoredPoint
 
@@ -46,16 +46,10 @@ class Router:
         for p in points:
             print(f" - {p.score}")
 
-        if len(points) < 5:  ### TODO: fix
-            return {"action": "search"}
-
-        return {"action": "respond"}
-
-    def decision(self, state: QueryState):
-        if "action" not in state:
-            raise ValueError("Router did not set an action")
-
-        return state["action"]
+        # The old ">= 5 points → respond" shortcut was unreachable: a response
+        # only exists after `search` runs, so a direct-entry respond always
+        # raised. KB-hitShortcut needs a cached-response path first. # TODO
+        return {"action": "search"}
 
     @traced_node(Node.RESPOND)
     def respond(self, state: QueryState):
@@ -94,14 +88,8 @@ class Router:
         graph.add_node("respond", self.respond)
 
         graph.add_edge(START, "router")
-
-        graph.add_conditional_edges(
-            "router",
-            self.decision,
-            {
-                "search": "search",
-                "respond": "respond",
-            },
-        )
+        graph.add_edge("router", "search")
+        graph.add_edge("search", "respond")
+        graph.add_edge("respond", END)
 
         return graph.compile()
