@@ -93,4 +93,5 @@ source = ["src"]
 show_missing = true
 
 [tool.basedpyright]
-level = "error"
+typeCheckingMode = "recommended"
+failOnWarnings = false

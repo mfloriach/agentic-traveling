@@ -40,9 +40,7 @@ jobs:
         run: uv run ruff format --check .
 
       - name: Type checking
-        run: uv run basedpyright --level error 
-        env:
-            BASED_PYRIGHT_FAIL_ON_WARNINGS: "false"
+        run: uv run basedpyright --level error
 
   tests:
     name: Tests
