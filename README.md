@@ -7,16 +7,17 @@ A portfolio project designed to demonstrate two disciplines end to end:
 
 It is meant to be read alongside the code: every subsystem below maps 1:1 to a file in `src/`.
 
----
-
 ## Architecture
 
 ![architecture](./docs/rag-stack.png)
 
 ### Graphs
-| router | Planner |
-| :---: | :---: |
-| ![router](./docs/router.png) | ![planner](./docs/planner.png) |
+<table  align="center">
+  <tr>
+    <td><img src="./docs/router.png" height="300" alt="Router" /></td>
+    <td><img src="./docs/planner.png" height="300" alt="Planner" /></td>
+  </tr>
+</table>
 
 ## The RAG pipeline, step by step
 
