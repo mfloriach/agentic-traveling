@@ -26,7 +26,7 @@ def mock_hotel(messages, info):
 
 def mock_destination(messages, info):
     return ModelResponse(
-        model_name="openapi",
+        model_name="google:gemini-3.8-flash",
         usage=RequestUsage(
             input_tokens=150,
             output_tokens=20,
@@ -62,7 +62,7 @@ def mock_flight(messages, info):
 
 def mock_activities(messages, info):
     return ModelResponse(
-        model_name="openapi",
+        model_name="meta:muse-spark-1.3",
         usage=RequestUsage(
             input_tokens=150,
             output_tokens=20,

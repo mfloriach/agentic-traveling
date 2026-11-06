@@ -1,6 +1,11 @@
+import uuid
+
 import pybreaker
 from pydantic_ai import RunContext
 
+from src.database import Travel
+
+from ..workflows.travel_info import TravelInfo
 from ..workflows.travel_planner import TravelDeps
 
 db_breaker = pybreaker.CircuitBreaker(
@@ -32,3 +37,11 @@ async def get_weather(
     return (
         f"Temperature: {data['temperature_2m']}F, Wind: {data['wind_speed_10m']} km/h"
     )
+
+
+async def get_travel_by_id(
+    ctx: RunContext[TravelInfo], travel_id: uuid.UUID, user_id: uuid.UUID
+) -> Travel | None:
+    """Get current weather for coordinates."""
+
+    return await ctx.deps.database.get_travel(user_id=user_id, travel_id=travel_id)

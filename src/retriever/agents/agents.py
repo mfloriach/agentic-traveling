@@ -6,7 +6,7 @@ from pydantic_ai.models.function import FunctionModel
 from ..workflows.travel_planner import TravelDeps
 from .hooks import acl
 from .schemas import ActivitiesOutput, DestinationOutput, FlightOutput, HotelOutput
-from .tools import get_weather
+from .tools import get_travel_by_id, get_weather
 
 
 def build_agent_destination(
@@ -99,4 +99,28 @@ def build_agent_activities(
         deps_type=TravelDeps,
         output_type=ActivitiesOutput,
         capabilities=[acl],
+    )
+
+
+def build_get_travel_info(
+    file_path: Path, mock_model: FunctionModel | None = None
+) -> Agent[TravelDeps, ActivitiesOutput]:
+    model = mock_model
+
+    return Agent.from_file(
+        str(file_path),
+        # model=FallbackModel(
+        #     configs["activities"]["model"],
+        #     *configs["activities"]["fallback_models"],
+        #     fallback_on=(
+        #         ModelRateLimitError,
+        #         ModelUnavailableError,
+        #         ModelServerError,
+        #     ),
+        # ),
+        model=model,
+        deps_type=TravelDeps,
+        output_type=ActivitiesOutput,
+        capabilities=[acl],
+        tools=[get_travel_by_id],
     )

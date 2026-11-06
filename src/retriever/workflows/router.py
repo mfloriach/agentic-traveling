@@ -8,7 +8,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph, NotRequired
 from qdrant_client.models import ScoredPoint
 
-from src.dag.workflows.travel_planner import Triage, TripState, ValidationResult
+from src.retriever.workflows.travel_planner import Triage, TripState, ValidationResult
 from src.tracing import traced_node
 
 
@@ -18,7 +18,7 @@ class Node(StrEnum):
     RESPOND = "respond"
 
 
-class DatabaseRetrieve(Protocol):
+class SemanticDatabaseRetrieve(Protocol):
     def search(self, query: str, limit: int = 5) -> list[ScoredPoint]: ...
 
 
@@ -43,7 +43,7 @@ class SemanticCache(Protocol):
 @dataclass
 class RouterDeps:
     graph: CompiledStateGraph[TripState, None, TripState, TripState]
-    database: DatabaseRetrieve
+    database: SemanticDatabaseRetrieve
     cache: SemanticCache
 
 

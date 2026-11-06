@@ -2,11 +2,11 @@ from pathlib import Path
 
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from feed.loader import LoaderLocal
-from feed.parsers import ParserTika
-from feed.pipeline import Pipeline
-from feed.splitter import Splitter
-from src.database import QdrantDatabase
+from injestor.loader import LoaderLocal
+from injestor.parsers import ParserTika
+from injestor.pipeline import Pipeline
+from injestor.splitter import Splitter
+from src.semantic_database import QdrantDatabase
 
 from .config import settings
 
