@@ -3,13 +3,10 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import NotRequired, TypedDict
 
-from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
 from src.database import PostgresDatabase
-from src.logger import logger
-from src.tracing import traced_node
 
 from ..agents.schemas import (
     DestinationOutput,
@@ -51,28 +48,28 @@ class TravelPlanner:
         self.deps = deps
         self.agents = agents
 
-    @traced_node(Node.DESTINATION)
-    async def handle_check(self, state: TripState) -> DestinationUpdate:
-        result = await self.agents.destination.run(state["user_input"], deps=self.deps)
-        logger.info(f"Destination: {result.output}")
-        return {"destination": result.output}
+    # @traced_node(Node.DESTINATION)
+    # async def handle_check(self, state: TripState) -> DestinationUpdate:
+    #     result = await self.agents.destination.run(state["user_input"], deps=self.deps)
+    #     logger.info(f"Destination: {result.output}")
+    #     return {"destination": result.output}
 
-    def build(self):
-        graph = StateGraph(TripState)
+    # def build(self):
+    #     graph = StateGraph(TripState)
 
-        graph.add_node(Node.DESTINATION, self.handle_check)
-        graph.add_node(Node.FLIGHT, self.handle_flight)
+    #     graph.add_node(Node.DESTINATION, self.handle_check)
+    #     graph.add_node(Node.FLIGHT, self.handle_flight)
 
-        graph.add_edge(START, Node.DESTINATION)
-        graph.add_edge(Node.ACTIVITIES, Node.VALIDATOR)
+    #     graph.add_edge(START, Node.DESTINATION)
+    #     graph.add_edge(Node.ACTIVITIES, Node.VALIDATOR)
 
-        graph.add_conditional_edges(
-            Node.VALIDATOR,
-            self.route_after_validation,
-            {
-                "finish": END,
-                "retry": Node.DESTINATION,
-            },
-        )
+    #     graph.add_conditional_edges(
+    #         Node.VALIDATOR,
+    #         self.route_after_validation,
+    #         {
+    #             "finish": END,
+    #             "retry": Node.DESTINATION,
+    #         },
+    #     )
 
-        return graph.compile()
+    #     return graph.compile()
