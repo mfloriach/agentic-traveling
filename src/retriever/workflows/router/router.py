@@ -7,12 +7,12 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph, NotRequired
 from qdrant_client.models import ScoredPoint
 
+from src.infrastructure.tracing import traced_node
 from src.retriever.workflows.planner.travel_planner import (
     Triage,
     TripState,
     ValidationResult,
 )
-from src.tracing import traced_node
 
 
 class Node(StrEnum):

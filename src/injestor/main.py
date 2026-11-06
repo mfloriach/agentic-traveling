@@ -6,16 +6,16 @@ from injestor.loader import LoaderLocal
 from injestor.parsers import ParserTika
 from injestor.pipeline import Pipeline
 from injestor.splitter import Splitter
-from src.semantic_database import QdrantDatabase
+from src.infrastructure.semantic_database import QdrantDatabase
 
-from .config import settings
+from ..config import settings
 
 
 def main() -> None:
     pipeline = Pipeline(
         database=QdrantDatabase(
-            url=settings.qdrant_host,
-            collection_name=settings.collection_name,
+            url=settings.qdrant.host,
+            collection_name=settings.qdrant.collection,
             embeddings=HuggingFaceEmbeddings(
                 model_name="sentence-transformers/all-MiniLM-L6-v2"
             ),

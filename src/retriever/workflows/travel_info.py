@@ -6,7 +6,7 @@ from typing import NotRequired, TypedDict
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from src.database import PostgresDatabase
+from src.infrastructure.database import PostgresDatabase
 
 from ..agents.schemas import (
     DestinationOutput,

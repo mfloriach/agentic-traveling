@@ -1,5 +1,21 @@
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Valkey(BaseModel):
+    host: str
+    password: str
+    port: int
+    database: int
+
+    model_config = SettingsConfigDict(env_prefix="VALKEY_")
+
+
+class Qdrant(BaseModel):
+    host: str
+    collection: str
+
+    model_config = SettingsConfigDict(env_prefix="QDRANT_")
 
 
 class Settings(BaseSettings):
@@ -16,14 +32,9 @@ class Settings(BaseSettings):
         default="http://localhost:9998",
         validation_alias=AliasChoices("TIKA_SERVER_ENDPOINT"),
     )
-    qdrant_host: str = Field(
-        default="localhost",
-        validation_alias=AliasChoices("QDRANT_HOST"),
-    )
-    collection_name: str = Field(
-        default="my_collection",
-        validation_alias=AliasChoices("COLLECTION_NAME"),
-    )
+    qdrant: Qdrant
+    valkey: Valkey
+
     port: int = 8010
 
 

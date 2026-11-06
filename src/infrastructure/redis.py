@@ -15,13 +15,20 @@ class SemanticCacheValkey:
     PREFIX = "semantic_cache:"
     DIMENSIONS = 384
 
-    def __init__(self, embeddings: HuggingFaceEmbeddings):
+    def __init__(
+        self,
+        embeddings: HuggingFaceEmbeddings,
+        host: str,
+        port: int,
+        password: str,
+        database: int,
+    ):
         self.redis = valkey.Valkey(
-            host="localhost",
-            port=6379,
-            db=0,
+            host=host,
+            port=port,
+            db=database,
             decode_responses=True,
-            password="your_strong_password",
+            password=password,
         )
         self.embeddings = embeddings
         self._create_index()

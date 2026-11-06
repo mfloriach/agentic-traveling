@@ -6,8 +6,8 @@ from typing import Any, Literal, NotRequired, Protocol, TypedDict
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
+from src.infrastructure.tracing import traced_node
 from src.logger import logger
-from src.tracing import traced_node
 
 from ...agents.schemas import (
     ActivitiesOutput,

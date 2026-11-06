@@ -3,7 +3,7 @@ import uuid
 import pybreaker
 from pydantic_ai import RunContext
 
-from src.database import Travel
+from src.infrastructure.database import Travel
 
 from ..workflows.planner.travel_planner import TravelDeps
 from ..workflows.travel_info import TravelInfo
