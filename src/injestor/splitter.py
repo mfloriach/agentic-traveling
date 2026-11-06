@@ -7,7 +7,7 @@ from langchain_text_splitters import (  # type: ignore[import-not-found, import-
     RecursiveCharacterTextSplitter,
 )
 
-from src.feed.utils import scrub_pii
+from src.injestor.utils import scrub_pii
 
 from .chunks import Chunk, Document, content_hash, stable_chunk_id
 
