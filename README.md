@@ -13,6 +13,11 @@ It is meant to be read alongside the code: every subsystem below maps 1:1 to a f
 
 ![architecture](./docs/rag-stack.png)
 
+### Graphs
+| router | Planner |
+| :---: | :---: |
+| ![router](./docs/router.png) | ![planner](./docs/planner.png) |
+
 ## The RAG pipeline, step by step
 
 **1. Load** (`feed/loader.py`) — a local file walker that yields every file in a directory. Deliberately boring: format detection is delegated to Tika, so the loader never dispatches on extension.

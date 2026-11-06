@@ -3,14 +3,13 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Literal, NotRequired, Protocol, TypedDict
 
-from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
 from src.logger import logger
 from src.tracing import traced_node
 
-from ..agents.schemas import (
+from ...agents.schemas import (
     ActivitiesOutput,
     DestinationOutput,
     FlightOutput,
@@ -190,31 +189,3 @@ class TravelPlanner:
             return "finish"  # Replace with a failure handler.
 
         return "retry"
-
-    def build(self):
-        graph = StateGraph(TripState)
-
-        graph.add_node(Node.DESTINATION, self.handle_destination)
-        graph.add_node(Node.FLIGHT, self.handle_flight)
-        graph.add_node(Node.HOTEL, self.handle_hotel)
-        graph.add_node(Node.ACTIVITIES, self.handle_activities)
-        graph.add_node(Node.VALIDATOR, self.handle_validator)
-
-        graph.add_edge(START, Node.DESTINATION)
-        graph.add_edge(Node.DESTINATION, Node.FLIGHT)
-        graph.add_edge(Node.DESTINATION, Node.HOTEL)
-        graph.add_edge(Node.DESTINATION, Node.ACTIVITIES)
-        graph.add_edge(Node.FLIGHT, Node.VALIDATOR)
-        graph.add_edge(Node.HOTEL, Node.VALIDATOR)
-        graph.add_edge(Node.ACTIVITIES, Node.VALIDATOR)
-
-        graph.add_conditional_edges(
-            Node.VALIDATOR,
-            self.route_after_validation,
-            {
-                "finish": END,
-                "retry": Node.DESTINATION,
-            },
-        )
-
-        return graph.compile()

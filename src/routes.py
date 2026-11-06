@@ -1,17 +1,26 @@
 import uuid
+from pathlib import Path
 from typing import Annotated, Any
 
 import opentelemetry.trace as trace
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from src.logger import logger, request_id, user_id
-from src.main import get_router
 from src.retriever.errors import ForbiddenError
-from src.retriever.workflows.router import QueryState
+from src.retriever.workflows.router.graph import QueryState
+from src.retriever.workflows.router.graph import app as router
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 app = FastAPI()
+
+
+def get_router():
+    """FastAPI dependency: inject the compiled LangGraph into the routes."""
+    return router
 
 
 @app.middleware("http")

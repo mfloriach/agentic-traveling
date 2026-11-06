@@ -21,6 +21,7 @@ class SemanticCacheValkey:
             port=6379,
             db=0,
             decode_responses=True,
+            password="your_strong_password",
         )
         self.embeddings = embeddings
         self._create_index()

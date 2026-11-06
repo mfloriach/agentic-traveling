@@ -5,8 +5,8 @@ from pydantic_ai import RunContext
 
 from src.database import Travel
 
+from ..workflows.planner.travel_planner import TravelDeps
 from ..workflows.travel_info import TravelInfo
-from ..workflows.travel_planner import TravelDeps
 
 db_breaker = pybreaker.CircuitBreaker(
     fail_max=3, reset_timeout=30, exclude=[ValueError]

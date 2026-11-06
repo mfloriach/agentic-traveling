@@ -1,11 +1,7 @@
 from pathlib import Path
 
-from dotenv import load_dotenv
-from langchain_huggingface import HuggingFaceEmbeddings
 from pydantic_ai.models.function import FunctionModel
 
-from src.config import settings
-from src.redis import SemanticCacheValkey
 from src.retriever.agents.agents import (
     build_agent_activities,
     build_agent_destination,
@@ -19,12 +15,8 @@ from src.retriever.agents.mocks import (
     mock_hotel,
 )
 from src.retriever.utils.api_client import APIClient
-from src.retriever.workflows.router import Router, RouterDeps
-from src.retriever.workflows.travel_planner import Agents, TravelDeps, TravelPlanner
-from src.semantic_database import QdrantDatabase
 
-load_dotenv(Path(__file__).resolve().parents[1] / ".env")
-
+from .travel_planner import Agents, TravelDeps, TravelPlanner
 
 planner = TravelPlanner(
     deps=TravelDeps(
@@ -49,28 +41,4 @@ planner = TravelPlanner(
             mock_model=FunctionModel(mock_activities),
         ),
     ),
-).build()
-
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
-router = Router(
-    deps=RouterDeps(
-        graph=planner,
-        database=QdrantDatabase(
-            url=settings.qdrant_host,
-            collection_name=settings.collection_name,
-            embeddings=embeddings,
-        ),
-        cache=SemanticCacheValkey(embeddings=embeddings),
-    )
-).build()
-
-
-def get_graph():
-    """FastAPI dependency: inject the compiled LangGraph into the routes."""
-    return planner
-
-
-def get_router():
-    """FastAPI dependency: inject the compiled LangGraph into the routes."""
-    return router
+)
