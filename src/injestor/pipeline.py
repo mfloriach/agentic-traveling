@@ -18,7 +18,11 @@ class Splitter(Protocol):
 
 
 class Parser(Protocol):
-    def parse(self, file_path: Path) -> Document | None: ...
+    def parse(self, file_path: Path) -> Iterator[Document]: ...
+
+
+class Dlp(Protocol):
+    def run(self, chunk: Chunk) -> Iterator[Chunk]: ...
 
 
 class Pipeline:
@@ -28,34 +32,34 @@ class Pipeline:
         parser: Parser,
         splitter: Splitter,
         loader: Loader,
+        dlp: Dlp,
     ):
         self.database = database
         self.parser = parser
         self.splitter = splitter
         self.loader = loader
+        self.dlp = dlp
 
     def load_data(self, path: Path) -> Iterator[Path]:
         yield from self.loader.load(path)
 
     def extract_data(self, paths: Iterable[Path]) -> Iterator[Document]:
         for path in paths:
-            document = self.parser.parse(file_path=path)
-            if not document:
-                continue
-
-            yield document
+            yield from self.parser.parse(file_path=path)
 
     def split_data(self, documents: Iterable[Document]) -> Iterator[Chunk]:
         for doc in documents:
             yield from self.splitter.split(doc)
 
-    def dlp(self, chunks: Iterable[Chunk]) -> Iterator[Chunk]:
-        yield from chunks
+    def apply_dlp(self, chunks: Iterable[Chunk]) -> Iterator[Chunk]:
+        for chunk in chunks:
+            yield from self.dlp.run(chunk)
 
     def run(self, path: Path) -> None:
         paths = self.load_data(path)
         documents = self.extract_data(paths)
         chunks = self.split_data(documents)
+        chunks = self.apply_dlp(chunks)
         self.database.insert(chunks, batch_size=100)
 
         print("finished")

@@ -61,7 +61,7 @@ class Document:
     source_uri: str
     content: str
     author: str | None
-    content_type: str | None
+    content_type: str
     document_hash: str
     title: str
     created: str | None

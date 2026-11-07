@@ -32,6 +32,10 @@ class Settings(BaseSettings):
         default="http://localhost:9998",
         validation_alias=AliasChoices("TIKA_SERVER_ENDPOINT"),
     )
+    temporal_host: str = Field(
+        default="localhost:7233",  # temporal service in docker-compose.yml
+        validation_alias=AliasChoices("TEMPORAL_HOST", "TEMPORAL_ADDRESS"),
+    )
     qdrant: Qdrant
     valkey: Valkey
 

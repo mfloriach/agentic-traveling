@@ -9,15 +9,11 @@ It is meant to be read alongside the code: every subsystem below maps 1:1 to a f
 
 ## Architecture
 
-![architecture](./docs/rag-stack.png)
+Injestor
+![architecture](./docs/injestor.png)
+Query
+![architecture](./docs/retrieve.png)
 
-### Graphs
-<table  align="center">
-  <tr>
-    <td><img src="./docs/router.png" height="300" alt="Router" /></td>
-    <td><img src="./docs/planner.png" height="300" alt="Planner" /></td>
-  </tr>
-</table>
 
 ## The RAG pipeline, step by step
 
